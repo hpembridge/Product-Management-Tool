@@ -1,0 +1,3168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="titanium">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Product Team — Project Management Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap" rel="stylesheet">
+<script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<link rel="stylesheet" href="shared/css/design-tokens.css" />
+<style>
+/* platinum-buttons.js normally defines these radius aliases before
+   sidebar-component.js loads; it isn't part of this repo, so alias
+   them here against our own radius tokens instead. */
+:root { --r-sm: var(--border-radius-sm); --r-md: var(--border-radius-md); --r-lg: var(--border-radius-lg); }
+
+/* ── RESET (house convention: customer-management.css) ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Any element given a `display` loses the UA's hidden-attribute styling,
+   so enforce it once here rather than per component. */
+[hidden] { display: none !important; }
+
+body {
+  font-family: var(--font-family-primary);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.45;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+button, input { font-family: inherit; }
+
+.app { display: flex; flex-direction: column; height: 100vh; min-height: 0; flex: 1; min-width: 0; }
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+  padding: 0 32px;
+  flex-shrink: 0;
+  z-index: 40;
+}
+.topbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  gap: 16px;
+  padding: 14px 0 0;
+}
+.tabs { display: flex; gap: 2px; }
+/* ---------- checklists ---------- */
+.cl {
+  border: 1px solid var(--border-default);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+.cl + .cl { margin-top: 12px; }
+.cl-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-tertiary);
+}
+.cl-name { font-family: var(--font-family-primary); font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.cl-count { font-size: 11px; color: var(--text-tertiary); }
+.cl-head .cl-acts { margin-left: auto; display: flex; gap: 2px; opacity: 0; transition: opacity .12s; }
+.cl-head:hover .cl-acts, .cl-head:focus-within .cl-acts { opacity: 1; }
+.cl-nameedit {
+  font-family: var(--font-family-primary); font-size: 14px; font-weight: 700; flex: 1;
+  border: 1px solid var(--interactive-default); border-radius: var(--border-radius-sm);
+  padding: 4px 8px; background: var(--bg-surface); color: var(--text-primary);
+}
+.cl-tasks { padding: 6px; }
+.cl-tasks:empty { display: none; }
+
+.task {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 34px; padding: 6px 8px;
+  border: 1px solid transparent; border-radius: var(--border-radius-sm);
+  font-size: 13px; cursor: pointer;
+}
+.task:hover { border-color: var(--border-default); background: var(--bg-surface); }
+.task input[type="checkbox"] { accent-color: var(--interactive-default); width: 14px; height: 14px; flex: none; cursor: pointer; }
+.task .ttext { color: var(--text-primary); flex: 1; min-width: 0; }
+.task.done .ttext { color: var(--text-tertiary); text-decoration: line-through; }
+.task .tacts { display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity .12s; flex: none; cursor: default; }
+.task:hover .tacts, .task:focus-within .tacts { opacity: 1; }
+.task .tsep { width: 1px; height: 16px; background: var(--border-default); margin: 0 4px; }
+.task .icon-btn[aria-expanded="true"] { background: var(--interactive-bg-subtle); color: var(--interactive-pressed); border-color: var(--interactive-default); }
+.task.editing { border-color: var(--interactive-default); background: var(--bg-surface); cursor: default; }
+.task.editing .tacts { opacity: 1; }
+.tedit { flex: 1; font-size: 13px; font-family: inherit; border: 0; outline: 0; background: transparent; color: var(--text-primary); }
+.tkids { margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--border-tertiary); }
+
+.avatar {
+  width: 22px; height: 22px; border-radius: var(--border-radius-full); flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: var(--text-primary);
+  border: 1px solid var(--border-default); background: var(--bg-muted);
+}
+.addtask {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 14px;
+  border: 0; border-top: 1px solid var(--border-tertiary);
+  background: none; color: var(--interactive-default);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.cl-tasks:empty + .addtask { border-top: 0; }
+.addtask:hover { background: var(--interactive-bg-subtle); }
+
+.assign-pop {
+  position: absolute; z-index: 90; width: 210px;
+  background: var(--bg-surface); border: 1px solid var(--border-default);
+  border-radius: var(--border-radius-md); box-shadow: 0 8px 28px rgba(0,0,0,.13);
+  padding: 12px;
+}
+.assign-pop .ap-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.assign-pop .ap-head span { font-family: var(--font-family-primary); font-size: 13px; font-weight: 700; }
+.assign-pop input {
+  width: 100%; font-size: 12px; padding: 6px 8px;
+  border: 1px solid var(--border-default); border-radius: var(--border-radius-sm);
+  background: var(--bg-surface); color: var(--text-primary);
+}
+.assign-pop .ap-label { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-tertiary); margin: 12px 0 4px; display: block; }
+.assign-pop button.ap-person {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 6px; border: 0; background: none; cursor: pointer;
+  font-size: 13px; color: var(--text-primary); text-align: left;
+  border-radius: var(--border-radius-sm);
+}
+.assign-pop button.ap-person:hover { background: var(--bg-muted); }
+.switchrow { display: flex; align-items: center; gap: 10px; }
+.switchrow input { accent-color: var(--interactive-default); width: 15px; height: 15px; }
+.switchrow label { font-size: 13px; color: var(--text-primary); cursor: pointer; }
+.rmfields { margin-top: 12px; padding-left: 25px; display: flex; flex-direction: column; gap: 12px; }
+.rmfields .label { display: block; margin-bottom: 4px; }
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg button {
+  font-size: 11px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-secondary);
+}
+.seg button[aria-pressed="true"] { background: var(--interactive-bg-subtle); border-color: var(--interactive-default); color: var(--interactive-pressed); }
+.hdr-actions { position: absolute; right: 0; top: 14px; display: flex; align-items: center; gap: 8px; }
+.savestate { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+.vault-cta {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--interactive-default); border-color: var(--interactive-default);
+  background: var(--interactive-bg-subtle);
+}
+.vault-cta:hover { color: var(--interactive-pressed); border-color: var(--interactive-pressed); }
+.vault-cta.connected {
+  color: var(--text-tertiary); border-color: var(--border-tertiary); background: var(--bg-muted);
+  max-width: 200px; overflow: hidden; white-space: nowrap;
+}
+.vault-cta.connected:hover { color: var(--text-primary); border-color: var(--border-default); }
+.savestate[data-dirty="true"] { color: var(--interactive-pressed); }
+button.kbd { cursor: pointer; }
+button.kbd:hover { color: var(--text-primary); border-color: var(--border-default); }
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-tertiary);
+  padding: 10px 14px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.tab:hover { color: var(--text-primary); }
+.tab[aria-selected="true"] { color: var(--interactive-default); border-bottom-color: var(--interactive-default); }
+.kbd {
+  font-family: var(--font-family-mono);
+  font-size: 10px;
+  border: 1px solid var(--border-tertiary);
+  border-radius: 4px;
+  padding: 3px 6px;
+  color: var(--text-tertiary);
+  background: var(--bg-muted);
+}
+.icon-btn {
+  width: 28px; height: 28px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+  transition: background .15s, color .15s;
+}
+.icon-btn:hover { background: var(--bg-muted); color: var(--text-primary); border-color: var(--border-subtle); }
+.text-btn.danger { color: var(--datacolor-cherry-06, #c0392b); }
+.text-btn {
+  font-size: 12px; color: var(--text-tertiary);
+  background: none; border: none; cursor: pointer;
+  padding: 5px 4px; text-decoration: underline;
+}
+.text-btn:hover { color: var(--text-primary); }
+
+/* ── LABELS ── */
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* ── SEARCH ── */
+.search-container {
+  position: relative; flex: 1;
+  display: flex; align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-surface);
+}
+.search-container i { color: var(--text-tertiary); padding: 0 12px; font-size: 12px; }
+.search-input {
+  width: 100%; padding: 8px 12px 8px 0;
+  border: none; outline: none; background: none;
+  font-size: 13px; color: var(--text-primary);
+}
+.search-container:focus-within { border-color: var(--border-focus); }
+
+/* ── SCREENS ── */
+.screen { flex: 1; min-height: 0; display: none; flex-direction: column; }
+.screen.active { display: flex; }
+
+.page-content {
+  flex: 1; min-height: 0;
+  margin: 20px 32px 24px;
+  display: flex; gap: 16px;
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.card-scroll { overflow-y: auto; padding: 16px; flex: 1; min-height: 0; }
+.board-view-inner { overflow: hidden; display: flex; flex-direction: column; }
+
+/* ── PROJECTS: SCOPE HEADER ── */
+.scope-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.scope-title {
+  font-family: var(--font-family-mono);
+  font-size: 15px; font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.scope-count {
+  font-size: 11px; font-weight: 700; color: var(--text-tertiary);
+  background: var(--bg-muted);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-full);
+  padding: 1px 8px; flex-shrink: 0;
+}
+.viewswitch { display: flex; border: 1px solid var(--border-subtle); border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+.viewtoggle {
+  background: var(--bg-surface); border: none;
+  color: var(--text-tertiary);
+  padding: 5px 12px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  cursor: pointer;
+}
+.viewtoggle + .viewtoggle { border-left: 1px solid var(--border-subtle); }
+.viewtoggle[aria-selected="true"] { background: var(--interactive-bg-subtle); color: var(--interactive-default); }
+
+/* ── FILTER CHIPS ── */
+.filterbar { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.filterbar .label { padding-top: 5px; flex-shrink: 0; }
+.chiprow { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-full);
+  padding: 3px 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.chip:hover { border-color: var(--border-subtle); color: var(--text-primary); }
+.chip[aria-pressed="true"] {
+  background: var(--interactive-bg-subtle);
+  border-color: var(--interactive-default);
+  color: var(--interactive-default);
+  font-weight: 600;
+}
+.chip .cn { opacity: .55; margin-left: 3px; }
+
+/* ── ITEM CARDS (LIST) ── */
+.item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.item-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: box-shadow .15s, transform .15s;
+}
+.item-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,.12); transform: translateY(-1px); }
+.item-card h3 { font-size: 15px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+.item-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.35; }
+.card-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+
+/* ── TAGS / PILLS ── */
+.tag {
+  font-family: var(--font-family-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  background: var(--bg-muted);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-full);
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.pill { font-size: 11px; padding: 1px 8px; }
+.pubmark { font-size: 10px; letter-spacing: .03em; }
+.status-pill {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+  border-radius: var(--border-radius-full);
+  padding: 1px 8px;
+  background: var(--lane-fill, var(--bg-muted));
+  border: 1px solid var(--lane-line, var(--border-tertiary));
+  color: var(--lane-text, var(--text-tertiary));
+}
+/* Shared lifecycle palette — any element carrying data-status picks up the
+   same fill/line/text triad, so list pills, board lanes and the status
+   filter all read as one color language. */
+[data-status="Idea"]        { --lane-fill: var(--datacolor-grape-00);     --lane-line: var(--datacolor-grape-04);     --lane-text: var(--datacolor-grape-06); }
+[data-status="Backlog"]     { --lane-fill: var(--datacolor-orange-00);    --lane-line: var(--datacolor-orange-04);    --lane-text: var(--datacolor-orange-06); }
+[data-status="Planned"]     { --lane-fill: var(--datacolor-blueberry-00); --lane-line: var(--datacolor-blueberry-04); --lane-text: var(--datacolor-blueberry-06); }
+[data-status="In Progress"] { --lane-fill: var(--datacolor-lemon-00);     --lane-line: var(--datacolor-lemon-04);     --lane-text: var(--datacolor-lemon-06); }
+[data-status="Development"] { --lane-fill: var(--datacolor-cherry-00);    --lane-line: var(--datacolor-cherry-04);    --lane-text: var(--datacolor-cherry-06); }
+[data-status="Released"]    { --lane-fill: var(--datacolor-mint-00);      --lane-line: var(--datacolor-mint-04);      --lane-text: var(--datacolor-mint-06); }
+
+/* ── BOARD ── */
+.board {
+  display: flex; align-items: stretch; gap: 12px;
+  overflow-x: auto; overflow-y: hidden;
+  flex: 1; min-height: 0; padding-bottom: 8px;
+}
+.col {
+  display: flex; flex-direction: column;
+  flex: 1 0 232px; min-width: 232px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 0;
+}
+.col.dragover { border-color: var(--interactive-default); border-style: dashed; }
+.board-card.dragging { opacity: .4; cursor: grabbing; }
+.col-cards.dropping { min-height: 40px; }
+
+.col-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px;
+  background: var(--lane-fill);
+  border-bottom: 1px solid var(--lane-line);
+  flex-shrink: 0;
+}
+.col-head .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--lane-text); }
+.col-count {
+  font-size: 11px; font-weight: 700; color: var(--text-tertiary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-full);
+  padding: 1px 8px; flex-shrink: 0;
+}
+.col-cards { overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+.col-empty {
+  font-size: 11px; color: var(--text-tertiary); text-align: center;
+  padding: 18px 8px; border: 1px dashed var(--border-tertiary); border-radius: 8px;
+}
+.board-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 11px 13px;
+  cursor: grab;
+  flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 7px;
+  transition: box-shadow .15s, transform .15s;
+}
+.board-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,.12); transform: translateY(-1px); }
+.board-card:active { cursor: grabbing; }
+.board-card .bt { font-size: 13px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; }
+.board-card .tagline { display: flex; flex-wrap: wrap; gap: 4px; }
+.ratio { font-size: 10px; color: var(--text-tertiary); font-family: var(--font-family-mono); }
+.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+
+/* ── STATUS FILTER (top of tag sidebar) ── */
+.statuslist { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 14px; }
+.status-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 8px; border-radius: 6px;
+  cursor: pointer; font-size: 12px;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+.status-row:hover { background: var(--bg-muted); color: var(--text-primary); }
+.status-row[aria-selected="true"] {
+  background: var(--lane-fill);
+  border-color: var(--lane-line);
+  color: var(--lane-text);
+  font-weight: 600;
+}
+.status-row .swatch {
+  width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: var(--lane-line);
+}
+.status-row .sname { flex: 1; }
+.status-row .scount { font-size: 10px; color: var(--text-tertiary); }
+.status-row[aria-selected="true"] .scount { color: inherit; opacity: .8; }
+
+/* ── TAG TREE SIDEBAR (right, per PRD §11.2) ── */
+.tagsidebar { width: 268px; flex: 0 0 268px; }
+.tree ul { list-style: none; margin: 0; padding-left: 12px; }
+.tree > ul { padding-left: 0; }
+.node {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: 6px;
+  cursor: pointer; font-size: 12px;
+  color: var(--text-secondary);
+}
+.node:hover { background: var(--bg-muted); color: var(--text-primary); }
+.node[aria-selected="true"] {
+  background: var(--interactive-bg-subtle);
+  color: var(--interactive-pressed);
+  font-weight: 600;
+}
+.node .twisty { width: 10px; color: var(--text-tertiary); font-size: 8px; flex: none; }
+.node .nname { font-family: var(--font-family-mono); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node .ncount { font-size: 10px; color: var(--text-tertiary); flex: none; }
+.node.root { margin-top: 6px; }
+.node.root .nname { font-weight: 700; }
+.collapsed > ul { display: none; }
+
+/* ── ITEM DETAIL ── */
+.breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  padding: 12px 0 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.breadcrumb a { text-decoration: underline; cursor: pointer; }
+.breadcrumb a:hover { opacity: .8; }
+.detail-wrap { flex: 1; overflow-y: auto; min-height: 0; }
+.detail { max-width: var(--container-workspace); margin: 20px auto 32px; }
+.detail-grid { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 16px; align-items: start; }
+.detail h1 { font-size: 24px; line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 10px; }
+.detail-head { padding: 16px; border-bottom: 1px solid var(--border-subtle); }
+.detail-head-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.detail-head-top .btn-secondary { flex-shrink: 0; margin-top: 2px; }
+.detail-head .chiprow { margin-top: 10px; }
+.detail-head .none { font-size: 12px; color: var(--text-tertiary); }
+.resource-links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; }
+.resource-link {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px;
+  color: var(--text-interactive); text-decoration: none;
+}
+.resource-link:hover { text-decoration: underline; }
+.resource-link i { font-size: 10px; color: var(--text-tertiary); }
+.desc a { color: var(--text-interactive); }
+
+/* ── EDIT FLYOUT ── */
+.flyout-overlay {
+  position: fixed; inset: 0; background: var(--overlay-panel);
+  display: none; justify-content: flex-end; z-index: 110;
+}
+.flyout-overlay.open { display: flex; }
+.flyout {
+  width: var(--container-aside); max-width: 92vw; height: 100%;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-default);
+  box-shadow: -8px 0 32px rgba(0,0,0,.16);
+  display: flex; flex-direction: column;
+  animation: flyin .16s ease-out;
+}
+@keyframes flyin { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+.flyout-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+}
+.flyout-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+.flyout-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-top: 1px solid var(--border-subtle);
+  background: var(--bg-muted); flex-shrink: 0;
+}
+.flyout-foot .hint { font-size: 11px; color: var(--text-tertiary); }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field-input {
+  width: 100%;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px; font-family: inherit;
+  color: var(--text-primary); background: var(--bg-surface);
+  outline: none; resize: vertical;
+}
+.field-input:focus { border-color: var(--border-focus); }
+.field .hint { font-size: 11px; color: var(--text-tertiary); }
+#edit-suggests { margin-top: 2px; max-height: 160px; }
+.linklist { display: flex; flex-direction: column; gap: 8px; }
+.linkrow { display: flex; gap: 8px; align-items: center; }
+.linkrow .link-label { flex: 0 0 34%; }
+.linkrow .link-url { flex: 1; min-width: 0; }
+.linkrow .icon-btn { flex-shrink: 0; }
+
+/* ── MARKDOWN EDITOR ── */
+.md-field { gap: 0; }
+.md-bar {
+  display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
+  border: 1px solid var(--border-subtle); border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 6px 8px; background: var(--bg-muted);
+}
+.md-bar button {
+  border: 1px solid transparent; background: none; cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 11px; font-weight: 700; font-family: inherit;
+  min-width: 26px; height: 26px; padding: 0 7px; border-radius: 4px;
+}
+.md-bar button:hover { background: var(--bg-surface); border-color: var(--border-tertiary); color: var(--text-primary); }
+.md-spacer { flex: 1; }
+.md-toggle { letter-spacing: .04em; text-transform: uppercase; font-size: 10px !important; }
+.md-toggle[aria-pressed="true"] { background: var(--interactive-bg-subtle) !important; color: var(--interactive-pressed) !important; border-color: var(--border-focus) !important; }
+.md-input {
+  border-radius: 0 0 8px 8px;
+  font-family: var(--font-family-mono); font-size: 12px; line-height: 1.6;
+  min-height: 320px;
+}
+.md-preview {
+  border: 1px solid var(--border-subtle); border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 16px; min-height: 320px; overflow-y: auto;
+  background: var(--bg-surface);
+}
+
+/* rendered markdown, shared by the preview and the published article */
+.md-body h2 { font-size: 18px; line-height: 1.3; margin: 22px 0 8px; letter-spacing: -0.01em; }
+.md-body h3 { font-size: 15px; line-height: 1.3; margin: 18px 0 6px; letter-spacing: -0.01em; }
+.md-body h2:first-child, .md-body h3:first-child { margin-top: 0; }
+.md-body p { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 12px; }
+.md-body ul, .md-body ol { margin: 0 0 12px 18px; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.md-body li { margin-bottom: 4px; }
+.md-body a { color: var(--text-interactive); }
+.md-body strong { font-weight: 700; color: var(--text-primary); }
+.md-body code {
+  font-family: var(--font-family-mono); font-size: 11.5px;
+  background: var(--bg-subtle); border: 1px solid var(--border-tertiary);
+  border-radius: 4px; padding: 1px 5px;
+}
+.md-body pre {
+  background: var(--bg-subtle); border: 1px solid var(--border-tertiary);
+  border-radius: 8px; padding: 12px; overflow-x: auto; margin-bottom: 12px;
+}
+.md-body pre code { background: none; border: none; padding: 0; }
+.md-body img {
+  max-width: 100%; height: auto; display: block;
+  border: 1px solid var(--border-tertiary); border-radius: 8px;
+  margin: 4px 0 14px;
+}
+.md-tablewrap { overflow-x: auto; margin: 4px 0 16px; }
+.md-body table { border-collapse: collapse; width: 100%; font-size: 13px; line-height: 1.5; }
+.md-body thead th {
+  text-align: left; font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-tertiary); font-weight: 600; white-space: nowrap;
+  padding: 0 14px 7px 0; border-bottom: 1px solid var(--border-default);
+}
+.md-body tbody td {
+  padding: 9px 14px 9px 0; color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-tertiary); vertical-align: top;
+}
+.md-body tbody tr:last-child td { border-bottom: none; }
+.md-body th:last-child, .md-body td:last-child { padding-right: 0; }
+.md-body tbody td:first-child { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
+.md-body table code { white-space: nowrap; }
+.md-body h1 { font-size: 20px; line-height: 1.25; margin: 24px 0 10px; letter-spacing: -0.01em; }
+.md-body h4 { font-size: 13px; margin: 16px 0 6px; }
+.md-body hr { border: 0; border-top: 1px solid var(--border-tertiary); margin: 20px 0; }
+.md-body blockquote {
+  border-left: 3px solid var(--border-subtle);
+  padding-left: 12px; margin: 0 0 12px; color: var(--text-tertiary);
+}
+.md-body .none { color: var(--text-tertiary); font-size: 13px; }
+.md-embed {
+  position: relative; padding-bottom: 56.25%; height: 0;
+  margin: 4px 0 14px; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border-tertiary); background: var(--bg-subtle);
+}
+.md-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.section-title { margin: 0; }
+.desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.check {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 0; font-size: 13px;
+  border-bottom: 1px solid var(--border-tertiary);
+  cursor: pointer;
+}
+.check:last-of-type { border-bottom: none; }
+.check input { accent-color: var(--interactive-default); width: 14px; height: 14px; }
+.check.done span { color: var(--text-tertiary); text-decoration: line-through; }
+.addcheck { background: none; border: none; color: var(--interactive-default); font-size: 12px; font-weight: 600; cursor: pointer; padding: 10px 0 0; }
+.meta-list { display: flex; flex-direction: column; }
+.meta-row {
+  display: flex; justify-content: space-between; gap: 12px;
+  font-size: 12px; padding: 8px 16px;
+  border-bottom: 1px solid var(--border-tertiary);
+}
+.meta-row:last-child { border-bottom: none; }
+.meta-row .k { color: var(--text-tertiary); }
+.meta-row .v { color: var(--text-primary); font-weight: 600; text-align: right; }
+.pubbtns { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+.pubbtns .btn-secondary { justify-content: center; }
+.related-list { display: flex; flex-direction: column; }
+.related-list a {
+  font-size: 12px; padding: 8px 16px;
+  border-bottom: 1px solid var(--border-tertiary);
+  text-decoration: none; color: var(--text-interactive);
+  display: flex; gap: 8px; align-items: baseline;
+}
+.related-list a:last-child { border-bottom: none; }
+.related-list a:hover { background: var(--bg-muted); }
+.related-list i { font-size: 10px; color: var(--text-tertiary); width: 12px; flex: none; }
+.related-list .none { font-size: 12px; color: var(--text-tertiary); padding: 12px 16px; }
+.activity { list-style: none; font-size: 12px; color: var(--text-tertiary); }
+.activity li { padding: 6px 0; border-bottom: 1px solid var(--border-tertiary); }
+.activity li:last-child { border-bottom: none; }
+.side-stack { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── KNOWLEDGEBASE ── */
+.kb-nav {
+  width: 268px; flex: 0 0 268px;
+  background: var(--bg-surface); color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.kb-nav .kb-nav-head { padding: 14px 16px 0; }
+.kb-nav .label { color: var(--text-tertiary); }
+.kb-nav .search-container { margin: 10px 0 14px; }
+.kb-nav-scroll { overflow-y: auto; padding: 0 10px 16px; flex: 1; min-height: 0; }
+.kb-nav .node { color: var(--text-secondary); }
+.kb-nav .node:hover { background: var(--bg-muted); color: var(--text-primary); }
+.kb-nav .node[aria-selected="true"] { background: var(--interactive-bg-subtle); color: var(--interactive-pressed); }
+.kb-nav .node.root .nname { color: var(--text-primary); font-family: var(--font-family-primary); letter-spacing: .02em; }
+.kb-nav .node .nname { white-space: normal; }
+.kb-article { flex: 1; min-width: 0; }
+.kb-article h1 { font-size: 24px; line-height: 1.2; letter-spacing: -0.01em; margin: 10px 0 12px; max-width: 62ch; }
+.kb-body { max-width: 68ch; }
+.kb-body p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 10px; }
+.kb-section + .kb-section { margin-top: 24px; }
+.kb-related { width: 240px; flex: 0 0 240px; }
+.doc-topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.modstamp { font-size: 11px; color: var(--text-tertiary); flex-shrink: 0; }
+
+/* ── NEXT RELEASE / CHANGELOG EDITOR ── */
+.rel-head { display: flex; gap: 12px; padding: 16px; }
+.rel-title, .rel-month {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--text-primary); background: var(--bg-surface);
+  outline: none;
+}
+.rel-title { flex: 1; }
+.rel-month { width: 150px; font-size: 13px; font-weight: 400; }
+.rel-title:focus, .rel-month:focus { border-color: var(--border-focus); }
+
+.rel-list { display: flex; flex-direction: column; }
+.rel-row {
+  display: flex; gap: 16px; align-items: flex-start;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-tertiary);
+}
+.rel-row:last-child { border-bottom: none; }
+.rel-row-main { flex: 1; min-width: 0; }
+.rel-row-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rel-row-top h3 { font-size: 14px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; }
+.rel-internal { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; }
+.rel-kb { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.rel-kb a, .rel-feature-kb {
+  font-size: 12px; color: var(--text-interactive);
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer; text-decoration: none;
+}
+.rel-kb a:hover, .rel-feature-kb:hover { text-decoration: underline; }
+.rel-kb i, .rel-feature-kb i { font-size: 10px; color: var(--text-tertiary); }
+.rel-kb .none { font-size: 12px; color: var(--text-tertiary); }
+.rel-row-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.rel-add {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-top: 1px solid var(--border-subtle);
+}
+.rel-add .hint { font-size: 12px; color: var(--text-tertiary); }
+.draft-flag {
+  font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--color-copper-500);
+  background: var(--status-warning-bg);
+  border: 1px solid var(--status-warning-border);
+  border-radius: var(--border-radius-full);
+  padding: 0 6px; margin-left: 4px;
+}
+.btn-primary:disabled, .btn-secondary:disabled { opacity: .45; pointer-events: none; }
+
+/* Features listed inside a published release card on the Roadmap */
+.rel-features { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.rel-feature { padding-top: 8px; border-top: 1px solid var(--border-tertiary); }
+.rel-feature:first-child { border-top: none; padding-top: 0; }
+.rel-feature-name { font-size: 13px; color: var(--text-primary); }
+.rel-feature-kb { margin-top: 3px; }
+
+/* ── ROADMAP ── */
+.roadmap { flex: 1; overflow-y: auto; min-height: 0; }
+.roadmap-inner {
+  max-width: var(--container-data);
+  margin: 20px auto 32px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 32px;
+}
+.roadmap h1 { font-size: 32px; line-height: 1.15; letter-spacing: -0.02em; margin-top: 4px; }
+.rm-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.intake-btn { flex-shrink: 0; margin-top: 8px; }
+.rm-cols { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 24px; margin-top: 32px; }
+.rm-colhead {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 8px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.rm-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: box-shadow .15s, transform .15s;
+}
+.rm-card h3 { font-size: 14px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; }
+.rm-desc {
+  font-size: 12px; line-height: 1.55; color: var(--text-secondary);
+  margin: 8px 0 10px;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.rm-desc a { color: var(--text-interactive); }
+.rm-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.month { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-tertiary); flex: none; }
+.rm-foot { font-size: 12px; margin-top: 4px; display: inline-block; }
+.rm-empty {
+  font-size: 12px; color: var(--text-tertiary); text-align: center;
+  padding: 22px 14px;
+  border: 1px dashed var(--border-tertiary);
+  border-radius: 10px;
+}
+.rm-flatlist { display: flex; flex-direction: column; }
+.rm-flatrow {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-tertiary);
+}
+.rm-flatrow:last-child { border-bottom: none; }
+.rm-flatrow .rm-flatmain { flex: 1; min-width: 0; }
+.rm-flatrow h3 { font-size: 14px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; }
+.rm-flatrow .rm-desc { margin: 6px 0 0; -webkit-line-clamp: 3; }
+
+/* ── CAPTURE / COMMAND PALETTE ── */
+.overlay {
+  position: fixed; inset: 0; background: var(--overlay-modal);
+  display: none; align-items: flex-start; justify-content: center;
+  padding-top: 12vh; z-index: 100;
+}
+.overlay.open { display: flex; }
+.modal {
+  width: 560px; max-width: 92vw;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.28);
+  overflow: hidden;
+}
+.modal-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.modal-head i { color: var(--text-tertiary); font-size: 13px; }
+.modal-head input {
+  flex: 1; border: none; outline: none;
+  font-size: 16px; font-weight: 600;
+  color: var(--text-primary); background: transparent;
+  letter-spacing: -0.01em;
+}
+.modal-head input::placeholder { font-weight: 400; color: var(--text-tertiary); }
+.modal-body { padding: 14px 16px; }
+.tagchips {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  margin: 8px 0 12px;
+  border: 1px solid var(--border-subtle); border-radius: 8px;
+  padding: 7px 10px;
+}
+.tagchips:focus-within { border-color: var(--border-focus); }
+.tagchip {
+  font-family: var(--font-family-mono); font-size: 11px;
+  background: var(--interactive-bg-subtle);
+  border: 1px solid var(--interactive-default);
+  color: var(--interactive-pressed);
+  border-radius: var(--border-radius-full); padding: 1px 8px;
+  display: inline-flex; gap: 6px; align-items: center;
+}
+.tagchip button { background: none; border: none; color: inherit; cursor: pointer; padding: 0; font-size: 12px; line-height: 1; }
+.tagchips input {
+  border: none; outline: none; flex: 1; min-width: 140px;
+  font-size: 12px; font-family: var(--font-family-mono);
+  background: transparent; color: var(--text-primary);
+}
+.suggests { list-style: none; max-height: 210px; overflow-y: auto; margin: 0 -4px; }
+.suggests li {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 7px 10px; border-radius: 6px; cursor: pointer;
+  font-family: var(--font-family-mono); font-size: 12px;
+}
+.suggests li:hover, .suggests li.sel { background: var(--interactive-bg-subtle); color: var(--interactive-pressed); }
+.suggests li.create {
+  color: var(--interactive-default); font-weight: 600;
+  border-top: 1px solid var(--border-tertiary); border-radius: 0;
+  margin-top: 6px; padding-top: 10px;
+}
+.suggests .cnt { color: var(--text-tertiary); font-size: 10px; font-family: var(--font-family-primary); flex: none; }
+.jump-hdr {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-tertiary); padding: 8px 10px 4px; cursor: default;
+  font-family: var(--font-family-primary);
+}
+.jump-hdr:hover { background: none; }
+.modal-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; border-top: 1px solid var(--border-subtle);
+  background: var(--bg-muted);
+}
+.modal-foot .hint { font-size: 11px; color: var(--text-tertiary); }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+  background: var(--bg-inverse); color: var(--text-on-dark);
+  border-radius: 8px; padding: 10px 12px 10px 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.3);
+  display: none; align-items: center; gap: 14px; font-size: 12px; z-index: 120;
+}
+.toast.show { display: flex; }
+.toast button {
+  background: none; border: none; color: var(--color-gold-300);
+  cursor: pointer; font-size: 12px; font-weight: 700;
+  padding: 4px 6px; border-radius: 4px;
+}
+.toast button:hover { background: var(--color-carbon-400); }
+
+.empty {
+  grid-column: 1 / -1;
+  padding: 48px 32px; text-align: center;
+  color: var(--text-tertiary); font-size: 13px;
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-tertiary);
+  border-radius: 8px;
+}
+
+/* ── SCROLLBARS ── */
+.card-scroll::-webkit-scrollbar, .col-cards::-webkit-scrollbar,
+.kb-nav-scroll::-webkit-scrollbar, .suggests::-webkit-scrollbar { width: 8px; }
+.board::-webkit-scrollbar { height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 5px; }
+
+@media (max-width: 1100px) {
+  .detail-grid { grid-template-columns: minmax(0,1fr); }
+  .rm-cols { grid-template-columns: minmax(0,1fr); }
+}
+
+
+/* ---------- knowledge vault ---------- */
+.kb-vaultbar { padding: 0 16px 10px; display: flex; flex-direction: column; gap: 8px; }
+.vault-row { display: flex; align-items: center; gap: 8px; min-height: 20px; }
+.vault-row .vname { font-size: 11px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.vault-row .none { font-size: 11px; }
+.pending-btn { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; padding: 6px 8px;
+  border: 1px solid var(--border-default); border-radius: var(--border-radius-sm); background: var(--bg-surface);
+  font-size: 11px; color: var(--text-secondary); cursor: pointer; }
+.pending-btn:hover { background: var(--bg-muted); color: var(--text-primary); }
+.pending-btn[aria-selected="true"] { background: var(--interactive-bg-subtle); border-color: var(--interactive-default); color: var(--interactive-pressed); }
+.pending-btn .cn { margin-left: auto; background: var(--interactive-default); color: #fff; border-radius: 999px; padding: 0 6px; font-size: 10px; }
+.kb-nav .node .dot { color: var(--interactive-default); font-size: 9px; margin-left: 4px; }
+.pend-group + .pend-group { margin-top: 24px; }
+.pend-group > .label { display: block; margin-bottom: 8px; }
+.pend-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border-subtle); }
+.pend-row .pmain { flex: 1; min-width: 0; }
+.pend-row .ptitle { font-family: var(--font-family-primary); font-size: 13px; color: var(--text-primary); }
+.pend-row .pmeta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+.pend-row .pmeta code { font-size: 10px; }
+.state-pill { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
+  border: 1px solid var(--border-default); color: var(--text-tertiary); white-space: nowrap; }
+.state-pill[data-s="pending"] { border-color: var(--interactive-default); color: var(--interactive-pressed); background: var(--interactive-bg-subtle); }
+.state-pill[data-s="new"] { border-color: var(--border-default); }
+.state-pill[data-s="missing"] { border-color: #c0392b; color: #c0392b; }
+.draftmark { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--interactive-pressed); }
+.linkkb-list { display: flex; flex-direction: column; }
+.linkkb-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
+.linkkb-row .lmain { flex: 1; min-width: 0; }
+.linkkb-row .ltitle { font-family: var(--font-family-primary); font-size: 13px; }
+.linkkb-row .lmeta { font-size: 10px; color: var(--text-tertiary); }
+.alsofiled { font-size: 11px; color: var(--text-tertiary); margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-row">
+      <nav class="tabs">
+        <button class="tab" data-tab="projects" aria-selected="true">Projects</button>
+        <button class="tab" data-tab="release" aria-selected="false">Next Release</button>
+        <button class="tab" data-tab="kb" aria-selected="false">Knowledgebase</button>
+        <button class="tab" data-tab="roadmap" aria-selected="false">Roadmap</button>
+      </nav>
+      <div class="hdr-actions">
+        <button class="kbd vault-cta" id="vault-btn" hidden></button>
+        <span class="savestate" id="save-state"></span>
+        <button class="kbd" id="save-btn" title="Save progress to the vault folder (⌘S)">Save</button>
+        <span class="kbd" id="capture-btn" title="Capture" style="cursor:pointer">⌘K to create</span>
+      </div>
+      <input type="file" id="data-file" accept="application/json,.json" hidden>
+    </div>
+  </header>
+
+  <!-- PROJECTS -->
+  <section class="screen active" id="screen-projects">
+    <div class="page-content">
+      <div class="card" style="flex:1;min-width:0">
+        <div class="card-header">
+          <div class="scope-head">
+            <span class="scope-title" id="scope-title">#all</span>
+            <span class="scope-count" id="scope-count"></span>
+            <button class="text-btn" id="clear-scope" hidden>clear</button>
+          </div>
+          <div class="search-container">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input class="search-input" id="search" placeholder="Search this scope…">
+          </div>
+          <div class="viewswitch">
+            <button class="viewtoggle" data-view="board" aria-selected="true">Board</button>
+            <button class="viewtoggle" data-view="list" aria-selected="false">List</button>
+          </div>
+        </div>
+
+        <div class="card-scroll" id="list-view">
+          <div class="filterbar">
+            <span class="label">Filter by</span>
+            <div class="chiprow" id="filter-chips"></div>
+          </div>
+          <div class="item-grid" id="item-grid"></div>
+        </div>
+
+        <div class="card-scroll board-view-inner" id="board-view" hidden>
+          <div class="filterbar">
+            <span class="label">Filter by</span>
+            <div class="chiprow" id="filter-chips-board"></div>
+          </div>
+          <div class="board" id="board"></div>
+        </div>
+      </div>
+
+      <aside class="card tagsidebar">
+        <div class="card-header">
+          <span class="label">Tags</span>
+        </div>
+        <div style="padding:12px 12px 0">
+          <span class="label">Status</span>
+          <div class="statuslist" id="statuslist"></div>
+        </div>
+        <div style="padding:12px 12px 0">
+          <div class="search-container">
+            <i class="fa-solid fa-filter"></i>
+            <input class="search-input" id="tagfilter" placeholder="filter tags…">
+          </div>
+        </div>
+        <div class="card-scroll" style="padding:10px 10px 16px"><div class="tree" id="tagtree"></div></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ITEM DETAIL -->
+  <section class="screen" id="screen-detail">
+    <div class="detail-wrap"><div class="detail" id="detail"></div></div>
+  </section>
+
+  <!-- NEXT RELEASE — the changelog editor -->
+  <section class="screen" id="screen-release">
+    <div class="detail-wrap"><div class="detail" id="release"></div></div>
+  </section>
+
+  <!-- KNOWLEDGEBASE -->
+  <section class="screen" id="screen-kb">
+    <div class="page-content">
+      <nav class="kb-nav">
+        <div class="kb-nav-head">
+          <span class="label">Knowledge</span>
+          <div class="search-container">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input class="search-input" id="kb-search" placeholder="search articles">
+          </div>
+        </div>
+        <div class="kb-vaultbar" id="kb-vaultbar"></div>
+        <div class="kb-nav-scroll"><div class="tree" id="kb-tree"></div></div>
+      </nav>
+      <article class="card kb-article" id="kb-article"></article>
+      <aside class="card kb-related" id="kb-related"></aside>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="screen" id="screen-roadmap">
+    <div class="roadmap"><div class="roadmap-inner" id="roadmap"></div></div>
+  </section>
+</div>
+
+<!-- CAPTURE / COMMAND PALETTE -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <i class="fa-solid fa-plus"></i>
+      <input id="cap-title" placeholder="Add ability to duplicate a job">
+      <span class="kbd">⏎ save</span>
+    </div>
+    <div class="modal-body">
+      <span class="label">Tags</span>
+      <div class="tagchips" id="cap-chips">
+        <input id="cap-tag" placeholder="#area/ship…">
+      </div>
+      <ul class="suggests" id="cap-suggests"></ul>
+    </div>
+    <div class="modal-foot">
+      <span class="hint">Esc to close · ↑↓ to pick a tag · Tab to add it</span>
+      <button class="btn-primary" id="cap-save">Save to Backlog</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT FLYOUT — project or knowledge article -->
+<div class="flyout-overlay" id="edit-overlay">
+  <aside class="flyout" role="dialog" aria-label="Edit">
+    <div class="flyout-head">
+      <span class="label" id="fly-heading">Edit project</span>
+      <button class="icon-btn" id="edit-close" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- LINK KNOWLEDGE ARTICLE MODE -->
+    <div class="flyout-body" id="fly-article" hidden>
+      <div class="field">
+        <span class="label">Vault</span>
+        <div class="vault-row" id="link-vault"></div>
+        <span class="hint">Article bodies are written in the vault. This panel only decides which articles document this item.</span>
+      </div>
+      <div class="field">
+        <span class="label">Articles</span>
+        <input class="field-input" id="link-search" placeholder="filter by title or id">
+        <div class="linkkb-list" id="link-list"></div>
+      </div>
+      <div class="field">
+        <button class="addcheck" id="link-new" type="button">+ new article in vault</button>
+        <span class="hint">Creates <code>kb-####-title.md</code> with a title heading. Write the body in Obsidian.</span>
+      </div>
+    </div>
+
+    <!-- PROJECT MODE -->
+    <div class="flyout-body" id="fly-project">
+      <div class="field">
+        <span class="label">Name</span>
+        <input class="field-input" id="edit-title" placeholder="Project name">
+      </div>
+      <div class="field">
+        <span class="label">Tags</span>
+        <div class="tagchips" id="edit-chips">
+          <input id="edit-tag" placeholder="#area/shipping">
+        </div>
+        <ul class="suggests" id="edit-suggests"></ul>
+      </div>
+      <div class="field">
+        <span class="label">Description</span>
+        <textarea class="field-input" id="edit-desc" rows="6" placeholder="What is this and why are we doing it?"></textarea>
+        <span class="hint">Markdown links work here — [label](https://…)</span>
+      </div>
+      <div class="field">
+        <span class="label">Resource links</span>
+        <div class="linklist" id="edit-links"></div>
+        <button class="addcheck" id="edit-addlink" type="button">+ add link</button>
+      </div>
+      <div class="field">
+        <span class="label">Roadmap</span>
+        <div class="switchrow">
+          <input type="checkbox" id="edit-roadmap">
+          <label for="edit-roadmap">Show this on the company roadmap</label>
+        </div>
+        <div class="rmfields" id="edit-rmfields" hidden>
+          <div>
+            <span class="label">Public title</span>
+            <input class="field-input" id="edit-pubtitle" placeholder="Leave blank to use the internal name">
+          </div>
+          <div>
+            <span class="label">Timeframe</span>
+            <div class="seg" id="edit-timeframe"></div>
+            <span class="hint" id="edit-rmhint"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flyout-foot">
+      <button class="text-btn danger" id="edit-delete">Delete project</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="text-btn" id="edit-cancel">Cancel</button>
+        <button class="btn-primary" id="edit-save">Save changes</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toast-msg"></span>
+  <button id="toast-open">Open</button>
+  <button id="toast-undo">Undo</button>
+</div>
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+const STATUSES = ["Idea","Backlog","In Progress","Development","Released"];
+/* Roadmap-eligible: an item is only ever shown to the company once real work
+   has started on it (spec §13.2). */
+const ROADMAP_STATUS = ["In Progress","Development","Released"];
+function migrateStatuses(){ items.forEach(i => {
+  if (i.status === "Planned") i.status = "Backlog";
+  if (i.status === "Complete") i.status = "Development";
+}); }
+const ACTIVE_STATUS = "In Progress";
+const CURRENT_USER = "Healey Pembridge";
+
+const TEAM = [
+  { name:"Healey Pembridge", tint:"var(--datacolor-blueberry-00, #dbeafe)" },
+  { name:"Anna Avalon",      tint:"var(--datacolor-cherry-00, #fee2e2)" },
+  { name:"Kassandra Reyes",  tint:"var(--datacolor-lime-00, #dcfce7)" },
+  { name:"Marco Diaz",       tint:"var(--datacolor-butter-00, #fef3c7)" }
+];
+function initials(name){ return name.split(/\s+/).map(w => w[0]).join("").slice(0,2).toUpperCase(); }
+function person(name){ return TEAM.find(p => p.name === name) || { name, tint:"var(--bg-muted)" }; }
+function avatarHtml(name){
+  const p = person(name);
+  return `<span class="avatar" title="${esc(name)}" style="background:${p.tint}">${esc(initials(name))}</span>`;
+}
+let uidSeq = 0;
+function uid(){ return "t" + Date.now().toString(36) + (++uidSeq).toString(36); }
+
+/* ---------- checklists ----------
+   An item holds named checklists; each task may nest to any depth. */
+function migrateChecklists(){
+  items.forEach(i => {
+    if (!i.checklists){
+      i.checklists = (i.checklist && i.checklist.length)
+        ? [{ id: uid(), name:"Design checklist",
+             tasks: i.checklist.map(c => ({ id: uid(), t: c.t, d: !!c.d, who: null, kids: [] })) }]
+        : [];
+    }
+    delete i.checklist;
+  });
+}
+function flatTasks(tasks){
+  const out = [];
+  (tasks || []).forEach(t => { out.push(t); out.push(...flatTasks(t.kids)); });
+  return out;
+}
+function itemTasks(i){ return (i.checklists || []).flatMap(cl => flatTasks(cl.tasks)); }
+function taskCounts(i){ const all = itemTasks(i); return { done: all.filter(x => x.d).length, total: all.length }; }
+function findTask(tasks, id, parent){
+  for (const t of (tasks || [])){
+    if (t.id === id) return { task:t, siblings:tasks, parent };
+    const hit = findTask(t.kids, id, t);
+    if (hit) return hit;
+  }
+  return null;
+}
+function locate(i, clId, taskId){
+  const cl = (i.checklists || []).find(c => c.id === clId);
+  if (!cl) return null;
+  const hit = findTask(cl.tasks, taskId, null);
+  return hit ? { cl, ...hit } : { cl };
+}
+function setDone(task, val){ task.d = val; (task.kids || []).forEach(k => setDone(k, val)); }
+
+function stamp(){ return { at: Date.now(), by: CURRENT_USER }; }
+function fmtStamp(s){
+  if (!s) return "";
+  const d = new Date(s.at);
+  const date = d.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+  const time = d.toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit" });
+  return `Last modified ${date} · ${time} by ${s.by}`;
+}
+
+let items = [];
+/* ============================================================
+   KNOWLEDGE VAULT
+   ============================================================
+   Article bodies are markdown files in a local folder (spec §12).
+   The file is the draft; the Knowledgebase serves a published snapshot.
+   Placement, tags and relationships come from the items an article is
+   linked to — never from the file itself, which carries no frontmatter. */
+
+const KB_FILE = /^(kb-\d{4})[-_ ]*(.*)\.md$/i;
+const vault = { dir:null, name:"", files:new Map(), read:false, needsPermission:false, error:"" };
+
+function kbLoad(k, d){ try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } }
+let kbPub   = kbLoad("pmt-kb-pub", {});    // id -> { body, hash, title, publishedAt }
+let kbLinks = kbLoad("pmt-kb-links", {});  // id -> { items:[itemId], primary:itemId }
+function kbSave(){
+  try {
+    localStorage.setItem("pmt-kb-pub", JSON.stringify(kbPub));
+    localStorage.setItem("pmt-kb-links", JSON.stringify(kbLinks));
+  } catch {}
+}
+function hashOf(s){ let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+
+/* ---------- folder handle ---------- */
+function idbOpen(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open("pmt-kb-vault", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("h");
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbPut(v){ const db = await idbOpen(); return new Promise(res => { const tx = db.transaction("h","readwrite"); tx.objectStore("h").put(v,"dir"); tx.oncomplete = res; }); }
+async function idbGet(){
+  try { const db = await idbOpen(); return await new Promise(res => { const q = db.transaction("h","readonly").objectStore("h").get("dir"); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); }
+  catch { return null; }
+}
+
+async function pickVault(){
+  if (!window.showDirectoryPicker){ vault.error = "This browser cannot open a local folder. Use Chrome or Edge."; renderAll(); return; }
+  try {
+    const dir = await window.showDirectoryPicker({ id:"kb-vault", mode:"readwrite" });
+    vault.dir = dir; vault.name = dir.name; vault.needsPermission = false; vault.error = "";
+    await idbPut(dir);
+    await readVault();
+    await loadData();
+  } catch(e){ if (e && e.name !== "AbortError"){ vault.error = e.message; renderAll(); } }
+}
+async function restoreVault(){
+  const dir = await idbGet();
+  if (!dir) return;
+  vault.dir = dir; vault.name = dir.name;
+  let perm = "prompt";
+  try { perm = await dir.queryPermission({ mode:"readwrite" }); } catch {}
+  if (perm === "granted"){ await readVault(); await loadData(); }
+  else { vault.needsPermission = true; renderAll(); }
+}
+async function grantVault(){
+  if (!vault.dir) return;
+  try {
+    const perm = await vault.dir.requestPermission({ mode:"readwrite" });
+    if (perm === "granted"){ vault.needsPermission = false; await readVault(); await loadData(); }
+  } catch(e){ vault.error = e.message; renderAll(); }
+}
+
+/* The folder is read on load and on demand — never watched. Edits made while
+   the platform is open appear on the next read (spec §12.2). */
+async function readVault(){
+  if (!vault.dir) return;
+  vault.files.clear(); vault.error = ""; vault.stale = false;
+  try {
+    for await (const [name, h] of vault.dir.entries()){
+      if (h.kind !== "file") continue;
+      const m = name.match(KB_FILE);
+      if (!m) continue;
+      const f = await h.getFile();
+      const body = await f.text();
+      const id = m[1].toLowerCase();
+      vault.files.set(id, { id, slug:m[2], filename:name, body, hash:hashOf(body),
+                            editedAt:f.lastModified, title:titleOf(body, m[2]) });
+    }
+    vault.read = true;
+  } catch(e){
+    /* the folder was moved, renamed or deleted since the handle was stored */
+    vault.error = (e && (e.name === "NotFoundError" || e.name === "NotReadableError"))
+      ? `Can't reach “${vault.name}” — it may have been moved or renamed. Reconnect to point at it again.`
+      : e.message;
+    vault.stale = true;
+    vault.read = false;
+  }
+  renderAll();
+}
+/* Title is the first H1 in the file — nothing to keep in sync. */
+function titleOf(body, slug){
+  const m = body.match(/^#\s+(.+)$/m);
+  if (m) return m[1].trim();
+  return (slug || "untitled").replace(/[-_]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+function fmtDate(ms){
+  if (!ms) return "";
+  return new Date(ms).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+}
+
+/* ---------- article model ----------
+   An article is a vault file, a published snapshot, or both. */
+function kbIdsAll(){ return Array.from(new Set([...vault.files.keys(), ...Object.keys(kbPub)])).sort(); }
+function kbArt(id){
+  const file = vault.files.get(id) || null;
+  const pub  = kbPub[id] || null;
+  const L    = kbLinks[id] || { items:[], primary:null };
+  const links = (L.items || []).filter(x => items.some(i => i.id === x));
+  let st = "clean";
+  if (!pub && file) st = "new";
+  else if (pub && !file) st = "missing";
+  else if (pub && file && file.hash !== pub.hash) st = "pending";
+  const primary = links.includes(L.primary) ? L.primary : (links[0] || null);
+  return {
+    id, file, pub, links, primary, state: st, published: !!pub,
+    title: (file && file.title) || (pub && pub.title) || id,
+    tags: artTags(links),
+    paths: artPaths(links, primary)
+  };
+}
+function artTags(links){
+  const out = [];
+  links.forEach(id => { const i = items.find(x => x.id === id); if (i) i.tags.forEach(tg => { if (!out.includes(tg)) out.push(tg); }); });
+  return collapseTags(out);
+}
+/* Placement is inherited from the linked item's tags (spec §12.5). */
+function pathForItem(id){
+  const i = items.find(x => x.id === id);
+  if (!i) return null;
+  const prod = i.tags.find(tg => tg.startsWith("#product/"));
+  if (prod) return ["Knowledge", ...prod.split("/").slice(1,3).map(cap)];
+  const proc = i.tags.find(tg => tg.startsWith("#workflow/") || tg.startsWith("#area/"));
+  if (proc) return ["Knowledge", "Processes", cap(proc.split("/")[1] || "")];
+  return ["Knowledge", "Unfiled"];
+}
+/* The primary link decides the canonical path; the rest are "also filed under". */
+function artPaths(links, primary){
+  const ordered = primary ? [primary, ...links.filter(x => x !== primary)] : links;
+  const seen = new Set(), out = [];
+  ordered.forEach(id => {
+    const pth = pathForItem(id);
+    if (!pth) return;
+    const k = pth.join("/");
+    if (!seen.has(k)){ seen.add(k); out.push(pth); }
+  });
+  return out;
+}
+function artsForItem(itemId){ return kbIdsAll().map(kbArt).filter(a => a.links.includes(itemId)); }
+function publishedArts(){ return kbIdsAll().map(kbArt).filter(a => a.published && a.links.length); }
+function pendingArts(){ return kbIdsAll().map(kbArt).filter(a => a.state !== "clean" && a.links.length); }
+function unlinkedArts(){ return kbIdsAll().map(kbArt).filter(a => !a.links.length); }
+function pendingCount(){ return pendingArts().length; }
+
+/* ---------- publish ---------- */
+function publishArt(id){
+  const f = vault.files.get(id);
+  if (!f) return;
+  kbPub[id] = { body:f.body, hash:f.hash, title:f.title, publishedAt: Date.now() };
+  kbSave(); renderAll();
+}
+function unpublishArt(id){ delete kbPub[id]; kbSave(); renderAll(); }
+
+/* ---------- links ---------- */
+function linkArt(id, itemId){
+  const L = kbLinks[id] || (kbLinks[id] = { items:[], primary:null });
+  if (!L.items.includes(itemId)) L.items.push(itemId);
+  if (!L.primary) L.primary = itemId;
+  kbSave();
+}
+function unlinkArt(id, itemId){
+  const L = kbLinks[id];
+  if (!L) return;
+  L.items = (L.items || []).filter(x => x !== itemId);
+  if (L.primary === itemId) L.primary = L.items[0] || null;
+  kbSave();
+}
+function setPrimaryLink(id, itemId){ const L = kbLinks[id]; if (L){ L.primary = itemId; kbSave(); } }
+
+async function newVaultArticle(title, itemId){
+  if (!vault.dir){ await pickVault(); }
+  if (!vault.dir) return null;
+  const nums = kbIdsAll().map(x => parseInt(x.slice(3), 10)).filter(n => !isNaN(n));
+  const id = "kb-" + String((nums.length ? Math.max(...nums) : 0) + 1).padStart(4, "0");
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "untitled";
+  try {
+    const fh = await vault.dir.getFileHandle(`${id}-${slug}.md`, { create:true });
+    const w = await fh.createWritable();
+    await w.write(`# ${title}\n\n`);
+    await w.close();
+  } catch(e){ vault.error = e.message; renderAll(); return null; }
+  if (itemId) linkArt(id, itemId);
+  await readVault();
+  return id;
+}
+/* Obsidian can open a file by name once the vault is registered there. */
+function obsidianHref(a){ return a.file ? `obsidian://open?file=${encodeURIComponent(a.file.filename.replace(/\.md$/i,""))}` : null; }
+
+/* ---------- vault markdown ---------- */
+/* Obsidian embeds and wikilinks, resolved before the shared renderer runs.
+   A link to an unpublished article renders as plain text, not a dead link. */
+/* Obsidian filenames routinely contain spaces, which are not legal in a
+   markdown destination — encode them so the image parses at all. */
+function encPath(s){ return s.trim().replace(/ /g, "%20"); }
+
+function preObsidian(md){
+  return md
+    .replace(/!\[\[([^\]|]+?)(?:\|([^\]]+))?\]\]/g, (m, f, alt) => `![${alt || ""}](${encPath(f)})`)
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, url) =>
+      /^(https?:|data:)/i.test(url) ? m : `![${alt}](${encPath(url)})`)
+    .replace(/\[\[([^\]|]+?)(?:\|([^\]]+))?\]\]/g, (m, target, label) => {
+      const hit = target.match(/^(kb-\d{4})/i);
+      const art = hit ? kbArt(hit[1].toLowerCase()) : null;
+      const text = label || (art ? art.title : target);
+      return (art && art.published) ? `[${text}](#kb/${art.id})` : text;
+    });
+}
+function bodyWithoutTitle(md){ return md.replace(/^\s*#\s+.+\r?\n?/, ""); }
+function renderVaultMarkdown(md){ return renderMarkdown(bodyWithoutTitle(preObsidian(md || ""))); }
+
+/* Images live beside the articles and are resolved out of the folder. */
+async function resolveVaultAssets(host){
+  if (!host) return;
+  host.querySelectorAll('a[href^="#kb/"]').forEach(a => {
+    const id = a.getAttribute("href").slice(4);
+    a.removeAttribute("target"); a.removeAttribute("href");
+    a.style.cursor = "pointer";
+    a.onclick = () => { state.kbArticle = id; state.kbView = "article"; showScreen("kb"); renderKB(); };
+  });
+  if (!vault.dir) return;
+  const imgs = Array.from(host.querySelectorAll("img"))
+    .filter(im => { const s = im.getAttribute("src") || ""; return s && !/^(https?:|data:|blob:|asset-)/i.test(s); });
+  for (const im of imgs){
+    const path = decodeURIComponent(im.getAttribute("src")).replace(/^\.\//, "");
+    try {
+      let dir = vault.dir;
+      const parts = path.split("/");
+      for (const seg of parts.slice(0, -1)) dir = await dir.getDirectoryHandle(seg);
+      const fh = await dir.getFileHandle(parts[parts.length - 1]);
+      im.src = URL.createObjectURL(await fh.getFile());
+    } catch {
+      const s = document.createElement("span");
+      s.className = "none";
+      s.textContent = `missing image: ${path}`;
+      im.replaceWith(s);
+    }
+  }
+}
+
+/* A release is the changelog. Projects are attached to the open draft
+   ("Next Release"); publishing it moves every attached project to
+   Released and publishes their knowledge articles. */
+let releases = [];
+let releaseSeq = 0;
+
+function nextRelease(){
+  let r = releases.find(x => !x.published);
+  if (!r) { r = { id: ++releaseSeq, title:"Next Release", month:"", itemIds:[], published:false }; releases.push(r); }
+  return r;
+}
+function publishedReleases(){ return releases.filter(r => r.published).slice().reverse(); }
+function releaseOf(item){ return releases.find(r => r.itemIds.includes(item.id)); }
+
+/* ============================================================
+   LOCAL SAVE FILE
+   ============================================================
+   Everything the platform owns — items, releases, article links and
+   published snapshots — is written to pmt-data.json in the vault folder.
+   Article prose is never in here; that lives in the markdown files. */
+
+const DATA_FILE = "pmt-data.json";
+let savedHash = "";
+let lastSavedAt = 0;
+let dataLoaded = false;
+
+function snapshot(){
+  return {
+    version: 1,
+    items, releases, releaseSeq,
+    kbPub, kbLinks,
+    ui: { collapsed: Array.from(state.collapsed) }
+  };
+}
+function snapshotHash(){ return hashOf(JSON.stringify(snapshot())); }
+
+function applySnapshot(d){
+  if (!d || typeof d !== "object") return false;
+  items      = Array.isArray(d.items) ? d.items : [];
+  releases   = Array.isArray(d.releases) ? d.releases : [];
+  releaseSeq = d.releaseSeq || releases.length;
+  kbPub      = d.kbPub   || {};
+  kbLinks    = d.kbLinks || {};
+  state.collapsed = new Set((d.ui && d.ui.collapsed) || []);
+  state.detailId = null; state.kbArticle = null; state.kbView = "article";
+  migrateStatuses();
+  migrateChecklists();
+  nextRelease();
+  kbSave();
+  return true;
+}
+
+function isEmptyProject(){
+  return !items.length && !releases.some(r => r.published)
+      && !Object.keys(kbPub).length && !Object.keys(kbLinks).length;
+}
+
+async function saveData(){
+  const json = JSON.stringify({ ...snapshot(), savedAt: Date.now() }, null, 2);
+  if (!vault.dir){ downloadData(json); return; }
+  try {
+    const fh = await vault.dir.getFileHandle(DATA_FILE, { create:true });
+    const w = await fh.createWritable();
+    await w.write(json);
+    await w.close();
+    savedHash = snapshotHash();
+    lastSavedAt = Date.now();
+    try { localStorage.setItem("pmt-saved-at", String(lastSavedAt)); } catch {}
+    renderSaveState();
+    toast(`Saved to ${DATA_FILE}`);
+  } catch(e){
+    vault.error = e.message;
+    toast("Could not write to the vault folder — downloading instead");
+    downloadData(json);
+  }
+}
+
+function downloadData(json){
+  const url = URL.createObjectURL(new Blob([json || JSON.stringify({ ...snapshot(), savedAt: Date.now() }, null, 2)], { type:"application/json" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = DATA_FILE;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  savedHash = snapshotHash();
+  lastSavedAt = Date.now();
+  renderSaveState();
+}
+
+/* Read on connect. Existing work is never replaced without asking. */
+async function loadData(){
+  if (!vault.dir) return;
+  let json = null;
+  try {
+    const fh = await vault.dir.getFileHandle(DATA_FILE);
+    json = await (await fh.getFile()).text();
+  } catch { return; }                       // no save file yet — nothing to do
+  let d;
+  try { d = JSON.parse(json); } catch { toast(`${DATA_FILE} is not valid JSON`); return; }
+  const hasWork = items.length || releases.some(r => r.published);
+  if (hasWork && !confirm(`Load ${DATA_FILE} from this folder?\n\nWork currently open in the browser will be replaced.`)) return;
+  if (applySnapshot(d)){
+    dataLoaded = true;
+    savedHash = snapshotHash();
+    lastSavedAt = d.savedAt || Date.now();
+    renderAll();
+  }
+}
+function importDataFile(file){
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    let d; try { d = JSON.parse(r.result); } catch { toast("Not valid JSON"); return; }
+    if (applySnapshot(d)){ savedHash = ""; renderAll(); toast("Save file loaded"); }
+  };
+  r.readAsText(file);
+}
+
+/* Without a folder there is no save target and no articles, so the topbar
+   says so and offers the picker rather than hiding the problem. */
+function renderVaultCta(){
+  const btn = $("#vault-btn");
+  if (!btn) return;
+  const supported = !!window.showDirectoryPicker;
+  const connected = !!vault.dir && !vault.needsPermission && !vault.stale;
+  btn.hidden = false;
+  btn.classList.toggle("connected", connected && supported);
+  if (connected){
+    /* still clickable: the folder can move, or you may want a different one */
+    btn.innerHTML = `<i class="fa-regular fa-folder"></i> ${esc(vault.name)}`;
+    btn.title = `Vault: ${vault.name} · ${vault.files.size} article${vault.files.size === 1 ? "" : "s"} — click to point at a different folder`;
+    btn.onclick = pickVault;
+    return;
+  }
+  if (!supported){
+    btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Vault needs Chrome`;
+    btn.title = "Reading a local folder requires Chrome or Edge";
+    btn.onclick = () => toast("Opening a local vault folder needs Chrome or Edge");
+    return;
+  }
+  const reconnect = !!vault.dir && vault.needsPermission && !vault.stale;
+  btn.innerHTML = `<i class="fa-regular fa-folder-open"></i> ${vault.dir ? "Reconnect vault" : "Connect vault"}`;
+  btn.title = vault.stale
+    ? vault.error
+    : reconnect
+      ? `Reconnect ${vault.name} — the browser drops folder access between sessions`
+      : "Choose the folder holding your knowledge articles and save file";
+  /* a stale handle can't be re-permissioned — it has to be re-picked */
+  btn.onclick = () => (reconnect ? grantVault() : pickVault());
+}
+
+function renderSaveState(){
+  renderVaultCta();
+  const el = $("#save-state");
+  if (!el) return;
+  const dirty = !isEmptyProject() && snapshotHash() !== savedHash;
+  el.dataset.dirty = dirty;
+  el.textContent = dirty
+    ? "unsaved changes"
+    : (lastSavedAt ? `saved ${new Date(lastSavedAt).toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit" })}` : "");
+  const btn = $("#save-btn");
+  if (btn) btn.title = vault.dir
+    ? `Save progress to ${vault.name}/${DATA_FILE} (⌘S)`
+    : "No vault folder connected — Save will download the file (⌘S)";
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let state = { tab:"projects", view:"board", scope:null, chips:new Set(), q:"", detailId:null,
+              kbArticle:null, kbView:"article", tagFilter:"", collapsed:new Set(), statusFilter:new Set() };
+
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+/* Escapes first, then turns markdown [label](url) into links and keeps
+   line breaks. Only http/https are linked — no raw HTML gets through. */
+function mdText(s){
+  return esc(s)
+    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      (m, label, url) => `<a href="${url}" target="_blank" rel="noopener">${label}</a>`)
+    .replace(/\n/g, "<br>");
+}
+
+/* ---------- markdown for knowledge articles ----------
+   Pasted screenshots are stored out of line in mediaStore and referenced as
+   ![alt](asset-N) so the source stays readable; srcs are swapped back in at
+   render. HTML is escaped before parsing, so authored markup can't inject. */
+const mediaStore = {};
+let mediaSeq = 0;
+
+function embedHtml(url){
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  if (yt) return `<div class="md-embed"><iframe src="https://www.youtube.com/embed/${yt[1]}" allowfullscreen loading="lazy"></iframe></div>`;
+  const vm = url.match(/vimeo\.com\/(\d+)/);
+  if (vm) return `<div class="md-embed"><iframe src="https://player.vimeo.com/video/${vm[1]}" allowfullscreen loading="lazy"></iframe></div>`;
+  return `<p><a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a></p>`;
+}
+
+function renderMarkdown(md){
+  if (!md || !md.trim()) return `<p class="none">Nothing written yet.</p>`;
+  // Pull video directives out before parsing so marked doesn't mangle them.
+  const embeds = [];
+  let src = md.replace(/^@\[video\]\((\S+)\)\s*$/gm, (m, url) => {
+    embeds.push(url);
+    return `\n\nMDEMBED${embeds.length - 1}MDEMBED\n\n`;
+  });
+  src = esc(src);
+  let html;
+  try {
+    html = (window.marked && marked.parse) ? marked.parse(src) : fallbackMd(src);
+  } catch { html = fallbackMd(src); }
+  // unwrap the placeholder from its paragraph — an iframe can't live in a <p>
+  html = html.replace(/<p>\s*MDEMBED(\d+)MDEMBED\s*<\/p>/g, (m, ix) => embedHtml(embeds[+ix]));
+  html = html.replace(/MDEMBED(\d+)MDEMBED/g, (m, ix) => embedHtml(embeds[+ix]));
+  // resolve stored screenshots
+  html = html.replace(/src="(asset-\d+)"/g, (m, key) => `src="${mediaStore[key] || ""}"`);
+  html = html.replace(/<a /g, '<a target="_blank" rel="noopener" ');
+  // wide tables scroll inside the article rather than stretching it
+  html = html.replace(/<table>/g, '<div class="md-tablewrap"><table>').replace(/<\/table>/g, '</table></div>');
+  return html;
+}
+
+/* Used when the marked CDN is unavailable, so a prototype opened offline
+   still renders properly. Input is already HTML-escaped. */
+function fallbackMd(s){
+  const fences = [];
+  s = s.replace(/```([\s\S]*?)```/g, (m, c) => {
+    fences.push(c.replace(/^\n/, ""));
+    return `MDFENCE${fences.length - 1}MDFENCE`;
+  });
+  const inline = t => t
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img alt="$1" src="$2">')
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[\s(])_([^_]+)_(?=[\s).,;:!?]|$)/g, '$1<em>$2</em>');
+
+  const out = []; let list = null, para = [], table = null;
+  const flushPara = () => { if (para.length) { out.push(`<p>${inline(para.join("\n")).replace(/\n/g,"<br>")}</p>`); para = []; } };
+  const flushList = () => { if (list) { out.push(`<${list.tag}>${list.items.map(x => `<li>${inline(x)}</li>`).join("")}</${list.tag}>`); list = null; } };
+  const cells = row => row.replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+  const flushTable = () => {
+    if (!table) return;
+    out.push(`<table><thead><tr>${table.head.map(c => `<th>${inline(c)}</th>`).join("")}</tr></thead>` +
+      `<tbody>${table.rows.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`);
+    table = null;
+  };
+
+  const lines = s.split("\n");
+  lines.forEach((line, ix) => {
+    const t = line.trim();
+    // pipe table: a header row followed by a |---|---| separator
+    if (table && table.sepAt === ix) return;
+    if (table && t.startsWith("|")) { table.rows.push(cells(t)); return; }
+    if (!table && t.startsWith("|") && /^\|?[\s:-]*-[\s|:-]*\|?$/.test((lines[ix+1] || "").trim()) && (lines[ix+1] || "").includes("|")) {
+      flushPara(); flushList();
+      table = { head: cells(t), rows: [], sepAt: ix + 1 };
+      return;
+    }
+    flushTable();
+    const f = t.match(/^MDFENCE(\d+)MDFENCE$/);
+    if (f) { flushPara(); flushList(); out.push(`<pre><code>${fences[+f[1]]}</code></pre>`); return; }
+    if (!t) { flushPara(); flushList(); return; }
+    const h = t.match(/^(#{1,4})\s+(.*)$/);
+    if (h) { flushPara(); flushList(); const lv = h[1].length; out.push(`<h${lv}>${inline(h[2])}</h${lv}>`); return; }
+    const ul = t.match(/^[-*]\s+(.*)$/);
+    if (ul) { flushPara(); if (!list || list.tag !== "ul") { flushList(); list = { tag:"ul", items:[] }; } list.items.push(ul[1]); return; }
+    const ol = t.match(/^\d+[.)]\s+(.*)$/);
+    if (ol) { flushPara(); if (!list || list.tag !== "ol") { flushList(); list = { tag:"ol", items:[] }; } list.items.push(ol[1]); return; }
+    const bq = t.match(/^&gt;\s?(.*)$/);
+    if (bq) { flushPara(); flushList(); out.push(`<blockquote>${inline(bq[1])}</blockquote>`); return; }
+    flushList(); para.push(t);
+  });
+  flushPara(); flushList(); flushTable();
+  return out.join("");
+}
+
+/* ---------- tag helpers ---------- */
+function allTags(){
+  const s = new Set();
+  items.forEach(i => i.tags.forEach(t => {
+    const p = t.split("/");
+    for (let n=1;n<=p.length;n++) s.add(p.slice(0,n).join("/"));
+  }));
+  return s;
+}
+function countFor(tag){ return items.filter(i => i.tags.some(t => t === tag || t.startsWith(tag + "/"))).length; }
+
+/* Nested tags imply their ancestors: holding #product/platinum/jobs already
+   means #product/platinum and #product. So ancestors are never suggested as
+   additions, and adding a deeper tag collapses away the ones it subsumes. */
+function impliedBy(tag, held){ return held === tag || held.startsWith(tag + "/"); }
+function collapseTags(list){
+  return list.filter(t => !list.some(o => o !== t && impliedBy(t, o)));
+}
+function inScope(i){ return !state.scope || i.tags.some(t => t === state.scope || t.startsWith(state.scope + "/")); }
+function scopedItems(){
+  let out = items.filter(inScope);
+  if (state.statusFilter.size) out = out.filter(i => state.statusFilter.has(i.status));
+  if (state.chips.size) out = out.filter(i => Array.from(state.chips).every(c => i.tags.includes(c)));
+  const q = state.q.trim().toLowerCase();
+  if (q) out = out.filter(i => (i.title + " " + i.desc + " " + i.tags.join(" ")).toLowerCase().includes(q));
+  return out;
+}
+function statusCountFor(s){ return items.filter(i => inScope(i) && i.status === s).length; }
+
+/* ============================================================
+   TAG TREE
+   ============================================================ */
+function buildTree(tags){
+  const root = {};
+  Array.from(tags).sort().forEach(t => {
+    const parts = t.replace(/^#/,"").split("/");
+    let node = root;
+    parts.forEach(p => { node[p] = node[p] || { __children:{} }; node = node[p].__children; });
+  });
+  return root;
+}
+function renderTree(node, prefix){
+  const ul = document.createElement("ul");
+  Object.keys(node).sort().forEach(name => {
+    const full = prefix ? prefix + "/" + name : "#" + name;
+    const kids = node[name].__children;
+    const hasKids = Object.keys(kids).length > 0;
+    const li = document.createElement("li");
+    if (state.collapsed.has(full)) li.className = "collapsed";
+    const row = document.createElement("div");
+    row.className = "node" + (prefix ? "" : " root");
+    row.setAttribute("aria-selected", state.scope === full);
+    row.innerHTML = `<span class="twisty">${hasKids ? (state.collapsed.has(full) ? "▶" : "▼") : ""}</span>
+      <span class="nname">${prefix ? name : "#" + name}</span><span class="ncount">${countFor(full)}</span>`;
+    row.querySelector(".twisty").onclick = e => {
+      e.stopPropagation();
+      state.collapsed.has(full) ? state.collapsed.delete(full) : state.collapsed.add(full);
+      renderTagSidebar();
+    };
+    row.onclick = () => { state.scope = (state.scope === full) ? null : full; state.chips.clear(); renderProjects(); };
+    li.appendChild(row);
+    if (hasKids) li.appendChild(renderTree(kids, full));
+    ul.appendChild(li);
+  });
+  return ul;
+}
+function renderStatusList(){
+  $("#statuslist").innerHTML = STATUSES.map(s => `
+    <div class="status-row" data-status="${s}" aria-selected="${state.statusFilter.has(s)}">
+      <span class="swatch"></span><span class="sname">${s}</span><span class="scount">${statusCountFor(s)}</span>
+    </div>`).join("");
+  $$("#statuslist .status-row").forEach(row => row.onclick = () => {
+    const s = row.dataset.status;
+    state.statusFilter.has(s) ? state.statusFilter.delete(s) : state.statusFilter.add(s);
+    renderProjects();
+  });
+}
+function renderTagSidebar(){
+  const f = state.tagFilter.trim().toLowerCase().replace(/^#/,"");
+  let tags = Array.from(allTags());
+  if (f) {
+    const keep = new Set();
+    tags.forEach(t => { if (t.toLowerCase().includes(f)) {
+      const p = t.replace(/^#/,"").split("/");
+      for (let n=1;n<=p.length;n++) keep.add("#" + p.slice(0,n).join("/"));
+    }});
+    tags = Array.from(keep);
+  }
+  const host = $("#tagtree");
+  host.innerHTML = "";
+  host.appendChild(renderTree(buildTree(tags), ""));
+}
+
+/* ============================================================
+   PROJECTS — LIST + BOARD
+   ============================================================ */
+function tagEl(t){ return `<span class="tag">${esc(t)}</span>`; }
+function renderChips(hostId){
+  const scoped = items.filter(inScope);
+  const counts = {};
+  scoped.forEach(i => i.tags.forEach(t => counts[t] = (counts[t]||0)+1));
+  const chips = Object.entries(counts).sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,12);
+  const host = $(hostId);
+  host.innerHTML = chips.length ? chips.map(([t,c]) =>
+    `<button class="chip" data-chip="${esc(t)}" aria-pressed="${state.chips.has(t)}">${esc(t)}<span class="cn">${c}</span></button>`).join("")
+    : `<span style="font-size:12px;color:var(--text-tertiary);padding-top:4px">No tags in scope</span>`;
+  host.querySelectorAll(".chip").forEach(b => b.onclick = () => {
+    const t = b.dataset.chip;
+    state.chips.has(t) ? state.chips.delete(t) : state.chips.add(t);
+    renderProjects();
+  });
+}
+function renderList(){
+  renderChips("#filter-chips");
+  const list = scopedItems();
+  $("#item-grid").innerHTML = list.length ? list.map(i => `
+    <div class="item-card" data-id="${i.id}">
+      <h3>${esc(i.title)}</h3>
+      <div class="item-desc">${esc(i.desc)}</div>
+      <div class="card-meta">
+        <span class="status-pill" data-status="${i.status}">${i.status}</span>
+        ${i.tags.filter(t => t.startsWith("#product/")).slice(0,1).map(tagEl).join("")}
+      </div>
+    </div>`).join("") : `<div class="empty">Nothing matches this scope. Press ⌘K to capture something.</div>`;
+  $$("#item-grid .item-card").forEach(c => c.onclick = () => openDetail(+c.dataset.id));
+}
+/* Board order is stored per item as `ord`, so a column keeps the order you
+   dragged it into rather than the order things happened to be created. */
+function boardOrder(list){
+  return list.slice().sort((a, b) => {
+    const ao = a.ord == null ? Infinity : a.ord;
+    const bo = b.ord == null ? Infinity : b.ord;
+    return ao - bo || a.id - b.id;
+  });
+}
+function resequence(status){
+  boardOrder(items.filter(i => i.status === status)).forEach((i, ix) => i.ord = ix);
+}
+function cardAfter(container, y){
+  return [...container.querySelectorAll(".board-card:not(.dragging)")].reduce((closest, el) => {
+    const box = el.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    return (offset < 0 && offset > closest.offset) ? { offset, el } : closest;
+  }, { offset: Number.NEGATIVE_INFINITY, el: null }).el;
+}
+
+function renderBoard(){
+  renderChips("#filter-chips-board");
+  const list = scopedItems();
+  $("#board").innerHTML = STATUSES.map(s => {
+    const col = boardOrder(list.filter(i => i.status === s));
+    return `<div class="col ${s === ACTIVE_STATUS ? "active-col" : ""}" data-status="${s}">
+      <div class="col-head"><span class="label">${s}</span><span class="col-count">${col.length}</span></div>
+      <div class="col-cards">
+      ${col.length ? col.map(i => {
+        const cc = taskCounts(i);
+        return `<div class="board-card" draggable="true" data-id="${i.id}">
+          <div class="bt">${esc(i.title)}</div>
+          <div class="tagline">${i.tags.filter(t=>!t.startsWith("#type/")).slice(0,2).map(tagEl).join("")}</div>
+          ${cc.total ? `<div class="card-foot"><span class="ratio">${cc.done}/${cc.total}</span></div>` : ""}
+        </div>`; }).join("") : `<div class="col-empty">Nothing here</div>`}
+      </div>
+    </div>`;
+  }).join("");
+
+  let dragged = null;
+  $$(".board-card").forEach(c => {
+    c.onclick = () => { if (!dragged) openDetail(+c.dataset.id); };
+    c.ondragstart = e => {
+      dragged = c;
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", c.dataset.id);
+      requestAnimationFrame(() => c.classList.add("dragging"));
+    };
+    c.ondragend = () => {
+      c.classList.remove("dragging");
+      $$(".col").forEach(x => x.classList.remove("dragover"));
+      setTimeout(() => { dragged = null; }, 0);
+    };
+  });
+
+  $$(".col").forEach(col => {
+    const cards = col.querySelector(".col-cards");
+    col.ondragover = e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      col.classList.add("dragover");
+      if (!dragged) return;
+      /* move the card as you go, so the gap shows where it will land */
+      const after = cardAfter(cards, e.clientY);
+      const empty = cards.querySelector(".col-empty");
+      if (empty) empty.remove();
+      if (after) cards.insertBefore(dragged, after);
+      else cards.appendChild(dragged);
+    };
+    col.ondragleave = e => { if (!col.contains(e.relatedTarget)) col.classList.remove("dragover"); };
+    col.ondrop = e => {
+      e.preventDefault();
+      col.classList.remove("dragover");
+      const it = items.find(i => i.id === +e.dataTransfer.getData("text/plain"));
+      if (!it) return renderAll();
+      const from = it.status;
+      const to = col.dataset.status;
+      if (from !== to){
+        it.status = to;
+        it.updated = "just now";
+        it.activity.unshift(`Status → ${to} · just now`);
+      }
+      /* the DOM already holds the order the user dragged into */
+      const ids = [...cards.querySelectorAll(".board-card")].map(el => +el.dataset.id);
+      ids.forEach((id, ix) => { const x = items.find(i => i.id === id); if (x) x.ord = ix; });
+      if (from !== to) resequence(from);
+      renderAll();
+    };
+  });
+}
+function renderProjects(){
+  $("#scope-title").textContent = state.scope || "#all";
+  const n = scopedItems().length;
+  $("#scope-count").textContent = `${n} item${n===1?"":"s"}`;
+  $("#clear-scope").hidden = !state.scope && !state.chips.size && !state.q && !state.statusFilter.size;
+  $("#list-view").hidden = state.view !== "list";
+  $("#board-view").hidden = state.view !== "board";
+  renderStatusList();
+  renderTagSidebar();
+  state.view === "list" ? renderList() : renderBoard();
+}
+
+/* ============================================================
+   ITEM DETAIL
+   ============================================================ */
+/* ============================================================
+   CHECKLISTS
+   ============================================================ */
+let clEdit = null;      // { clId, taskId } | { clId, rename:true }
+let assignOpen = null;  // { clId, taskId }
+
+function renderChecklists(i){
+  if (!(i.checklists || []).length)
+    return `<div style="font-size:12px;color:var(--text-tertiary)">No checklists yet.</div>`;
+  return i.checklists.map(cl => {
+    const all = flatTasks(cl.tasks);
+    const done = all.filter(x => x.d).length;
+    const renaming = clEdit && clEdit.clId === cl.id && clEdit.rename;
+    return `
+    <div class="cl" data-clist="${cl.id}">
+      <div class="cl-head">
+        ${renaming
+          ? `<input class="cl-nameedit" data-clname="${cl.id}" value="${esc(cl.name)}">
+             <button class="icon-btn" data-clnameok="${cl.id}" title="Save"><i class="fa-solid fa-check"></i></button>
+             <button class="icon-btn" data-clcancel="1" title="Cancel"><i class="fa-solid fa-xmark"></i></button>`
+          : `<span class="cl-name">${esc(cl.name)}</span>
+             ${all.length ? `<span class="cl-count">${done}/${all.length}</span>` : ""}
+             <span class="cl-acts">
+               <button class="icon-btn" data-clrename="${cl.id}" title="Rename checklist"><i class="fa-solid fa-pencil"></i></button>
+               <button class="icon-btn" data-cldel="${cl.id}" title="Delete checklist"><i class="fa-regular fa-trash-can"></i></button>
+             </span>`}
+      </div>
+      <div class="cl-tasks">${renderTasks(cl, cl.tasks)}</div>
+      <button class="addtask" data-claddtask="${cl.id}"><i class="fa-solid fa-plus"></i> Add Task</button>
+    </div>`;
+  }).join("");
+}
+
+function renderTasks(cl, tasks){
+  return (tasks || []).map(task => {
+    const editing = clEdit && !clEdit.rename && clEdit.clId === cl.id && clEdit.taskId === task.id;
+    const row = editing
+      ? `<div class="task editing" data-task="${task.id}">
+           <input type="checkbox" disabled ${task.d ? "checked" : ""}>
+           <input class="tedit" data-tedit="${task.id}" value="${esc(task.t)}" placeholder="Task">
+           <span class="tacts">
+             <button class="icon-btn" data-tok="${task.id}" title="Save"><i class="fa-solid fa-check"></i></button>
+             <button class="icon-btn" data-tcancel="${task.id}" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
+           </span>
+         </div>`
+      : `<div class="task ${task.d ? "done" : ""}" data-task="${task.id}">
+           <input type="checkbox" data-tdone="${task.id}" ${task.d ? "checked" : ""}>
+           <span class="ttext">${esc(task.t)}</span>
+           ${task.who ? avatarHtml(task.who) : ""}
+           <span class="tacts">
+             <button class="icon-btn" data-tsub="${task.id}" title="Add subtask"><i class="fa-solid fa-arrow-turn-down"></i></button>
+             <span class="tsep"></span>
+             <button class="icon-btn" data-tedit-open="${task.id}" title="Edit"><i class="fa-solid fa-pencil"></i></button>
+             <button class="icon-btn" data-tassign="${task.id}" title="Assign"
+               aria-expanded="${!!(assignOpen && assignOpen.taskId === task.id)}"><i class="fa-solid fa-user-plus"></i></button>
+             <button class="icon-btn" data-tdel="${task.id}" title="Delete"><i class="fa-regular fa-trash-can"></i></button>
+           </span>
+         </div>`;
+    const kids = (task.kids || []).length ? `<div class="tkids">${renderTasks(cl, task.kids)}</div>` : "";
+    return row + kids;
+  }).join("");
+}
+
+function wireChecklists(i){
+  const host = $("#cl-host");
+  if (!host) return;
+  /* note: data-cl is already taken by the changelog link in renderDetail */
+  const clOf = el => el.closest(".cl").dataset.clist;
+  const redraw = () => { i.updated = "just now"; renderDetail(); };
+
+  host.querySelectorAll("[data-tdone]").forEach(cb => cb.onchange = () => {
+    const hit = locate(i, clOf(cb), cb.dataset.tdone);
+    if (hit && hit.task){ setDone(hit.task, cb.checked); redraw(); }
+  });
+  host.querySelectorAll("[data-tedit-open]").forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    clEdit = { clId: clOf(el), taskId: el.dataset.teditOpen };
+    renderDetail();
+  });
+  /* Clicking the row completes the task — editing is the pencil only. */
+  host.querySelectorAll(".task:not(.editing)").forEach(row => row.onclick = e => {
+    if (e.target.closest(".tacts") || e.target.matches('input[type="checkbox"]')) return;
+    const hit = locate(i, clOf(row), row.dataset.task);
+    if (hit && hit.task){ setDone(hit.task, !hit.task.d); redraw(); }
+  });
+  host.querySelectorAll("[data-tsub]").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const hit = locate(i, clOf(b), b.dataset.tsub);
+    if (!hit || !hit.task) return;
+    const kid = { id: uid(), t:"", d:false, who:null, kids:[] };
+    hit.task.kids = hit.task.kids || [];
+    hit.task.kids.push(kid);
+    clEdit = { clId: hit.cl.id, taskId: kid.id };
+    redraw();
+  });
+  host.querySelectorAll("[data-tdel]").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const hit = locate(i, clOf(b), b.dataset.tdel);
+    if (!hit || !hit.task) return;
+    const ix = hit.siblings.indexOf(hit.task);
+    hit.siblings.splice(ix, 1);
+    redraw();
+  });
+  host.querySelectorAll("[data-tassign]").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    openAssign(b, i, clOf(b), b.dataset.tassign);
+  });
+
+  /* inline edit — blank text on cancel removes the row, so a mis-click on
+     Add Task never leaves an empty task behind */
+  const commit = (el, keep) => {
+    const input = host.querySelector("[data-tedit]");
+    if (!input) return;
+    const hit = locate(i, clEdit.clId, clEdit.taskId);
+    if (hit && hit.task){
+      const val = input.value.trim();
+      if (keep && val) hit.task.t = val;
+      else if (!hit.task.t.trim() || (keep && !val)) hit.siblings.splice(hit.siblings.indexOf(hit.task), 1);
+    }
+    clEdit = null;
+    redraw();
+  };
+  host.querySelectorAll("[data-tok]").forEach(b => b.onclick = () => commit(b, true));
+  host.querySelectorAll("[data-tcancel]").forEach(b => b.onclick = () => commit(b, false));
+  const inp = host.querySelector("[data-tedit]");
+  if (inp){
+    /* The click that opened this row can bounce focus back to the body once the
+       old markup is torn down — take focus on the next frame, and treat a blur
+       in that same beat as the bounce rather than as the user leaving. */
+    let focusedAt = 0;
+    inp.addEventListener("focus", () => { focusedAt = Date.now(); });
+    requestAnimationFrame(() => { inp.focus(); inp.select(); });
+    inp.onkeydown = e => {
+      if (e.key === "Enter"){ e.preventDefault(); commit(inp, true); }
+      if (e.key === "Escape"){ e.preventDefault(); commit(inp, false); }
+    };
+    inp.onblur = () => {
+      if (!clEdit) return;
+      if (Date.now() - focusedAt < 250){ inp.focus(); return; }
+      commit(inp, true);
+    };
+  }
+
+  host.querySelectorAll("[data-claddtask]").forEach(b => b.onclick = () => {
+    const cl = i.checklists.find(c => c.id === b.dataset.claddtask);
+    if (!cl) return;
+    const task = { id: uid(), t:"", d:false, who:null, kids:[] };
+    cl.tasks.push(task);
+    clEdit = { clId: cl.id, taskId: task.id };
+    redraw();
+  });
+  host.querySelectorAll("[data-clrename]").forEach(b => b.onclick = () => {
+    clEdit = { clId: b.dataset.clrename, rename:true }; renderDetail();
+  });
+  host.querySelectorAll("[data-cldel]").forEach(b => b.onclick = () => {
+    const cl = i.checklists.find(c => c.id === b.dataset.cldel);
+    if (!cl) return;
+    if (flatTasks(cl.tasks).length && !confirm(`Delete “${cl.name}” and its ${flatTasks(cl.tasks).length} task(s)?`)) return;
+    i.checklists = i.checklists.filter(c => c.id !== cl.id);
+    redraw();
+  });
+  const nameInput = host.querySelector("[data-clname]");
+  if (nameInput){
+    requestAnimationFrame(() => { nameInput.focus(); nameInput.select(); });
+    const saveName = keep => {
+      const cl = i.checklists.find(c => c.id === clEdit.clId);
+      if (cl && keep && nameInput.value.trim()) cl.name = nameInput.value.trim();
+      clEdit = null; redraw();
+    };
+    nameInput.onkeydown = e => {
+      if (e.key === "Enter"){ e.preventDefault(); saveName(true); }
+      if (e.key === "Escape"){ e.preventDefault(); saveName(false); }
+    };
+    host.querySelectorAll("[data-clnameok]").forEach(b => b.onclick = () => saveName(true));
+    host.querySelectorAll("[data-clcancel]").forEach(b => b.onclick = () => saveName(false));
+  }
+
+  const addList = $("#add-list");
+  if (addList) addList.onclick = () => {
+    const cl = { id: uid(), name:"Checklist", tasks:[] };
+    i.checklists = i.checklists || [];
+    i.checklists.push(cl);
+    clEdit = { clId: cl.id, rename:true };
+    redraw();
+  };
+}
+
+/* ---------- assign ---------- */
+function closeAssign(){
+  assignOpen = null;
+  const el = document.querySelector(".assign-pop");
+  if (el) el.remove();
+  $$("[data-tassign]").forEach(b => b.setAttribute("aria-expanded", "false"));
+}
+function openAssign(btn, i, clId, taskId){
+  const same = assignOpen && assignOpen.taskId === taskId;
+  closeAssign();
+  if (same) return;
+  assignOpen = { clId, taskId };
+  btn.setAttribute("aria-expanded", "true");
+  const hit = locate(i, clId, taskId);
+  const pop = document.createElement("div");
+  pop.className = "assign-pop";
+  const draw = (q = "") => {
+    const list = TEAM.filter(pn => !q || pn.name.toLowerCase().includes(q.toLowerCase()));
+    pop.innerHTML = `
+      <div class="ap-head"><span>Assign</span>
+        <button class="icon-btn" data-apclose="1"><i class="fa-solid fa-xmark"></i></button></div>
+      <input placeholder="Search" data-apq value="${esc(q)}">
+      <span class="ap-label">${q ? "Matches" : "Recent"}</span>
+      ${list.map(pn => `<button class="ap-person" data-apname="${esc(pn.name)}">${avatarHtml(pn.name)}${esc(pn.name)}</button>`).join("")
+        || `<span class="none" style="font-size:12px">No one by that name</span>`}
+      ${hit && hit.task && hit.task.who ? `<button class="ap-person" data-apname=""><span class="avatar">—</span>Unassign</button>` : ""}`;
+    pop.querySelector("[data-apclose]").onclick = closeAssign;
+    const qi = pop.querySelector("[data-apq]");
+    qi.oninput = () => { const v = qi.value; draw(v); pop.querySelector("[data-apq]").focus(); };
+    pop.querySelectorAll("[data-apname]").forEach(b => b.onclick = () => {
+      if (hit && hit.task) hit.task.who = b.dataset.apname || null;
+      closeAssign();
+      renderDetail();
+    });
+  };
+  draw();
+  document.body.appendChild(pop);
+  const r = btn.getBoundingClientRect();
+  pop.style.top = `${window.scrollY + r.bottom + 6}px`;
+  pop.style.left = `${Math.min(window.scrollX + r.left - 150, window.innerWidth - 224)}px`;
+  pop.onclick = e => e.stopPropagation();
+  pop.querySelector("[data-apq]").focus();
+}
+document.addEventListener("click", () => { if (assignOpen) closeAssign(); });
+
+function openDetail(id){ state.detailId = id; showScreen("detail"); renderDetail(); }
+function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function renderDetail(){
+  const i = items.find(x => x.id === state.detailId);
+  if (!i) return;
+  const primary = i.tags.find(t => t.startsWith("#product/") && t.split("/").length > 2) || i.tags[0];
+  const cc = taskCounts(i);
+  const rel = (i.related||[]).map(r => items.find(x => x.id === r)).filter(Boolean);
+  const rls = releaseOf(i);
+
+  $("#detail").innerHTML = `
+    <div class="breadcrumb">
+      <a id="crumb-status">${i.status}</a><span>/</span>
+      <a id="crumb-tag">${esc(primary)}</a><span>/</span>
+      <span>${esc(i.title)}</span>
+    </div>
+    <div class="detail-grid" style="margin-top:16px">
+      <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+        <div class="card">
+          <div class="detail-head">
+            <div class="detail-head-top">
+              <h1>${esc(i.title)}</h1>
+              <button class="icon-btn" id="edit-open" title="Edit project"><i class="fa-regular fa-pen-to-square"></i></button>
+            </div>
+            <div class="chiprow">${i.tags.length ? i.tags.map(tagEl).join("") : `<span class="none">No tags yet</span>`}</div>
+            ${(i.links||[]).length ? `<div class="resource-links">
+              ${i.links.map(l => `<a class="resource-link" href="${esc(l.url)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i>${esc(l.label || l.url)}</a>`).join("")}
+            </div>` : ""}
+          </div>
+          <div style="padding:16px">
+            <span class="label">Description</span>
+            <p class="desc" style="margin-top:8px">${i.desc ? mdText(i.desc) : "<span style='color:var(--text-tertiary)'>No description yet.</span>"}</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="label">Checklists</span>
+            <span style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+              ${cc.total ? `<span class="col-count">${cc.done}/${cc.total}</span>` : ""}
+              <button class="icon-btn" id="add-list" title="Add checklist"><i class="fa-solid fa-plus"></i></button>
+            </span>
+          </div>
+          <div style="padding:16px" id="cl-host">${renderChecklists(i)}</div>
+        </div>
+
+      </div>
+
+      <aside class="side-stack">
+        <div class="card">
+          <div class="meta-list">
+            <div class="meta-row"><span class="k">Updated</span><span class="v">${esc(i.updated)}</span></div>
+            <div class="meta-row"><span class="k">Roadmap</span><span class="v">${i.roadmap ? "published" : "not published"}</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="label">Publish</span></div>
+          <div class="pubbtns">
+            <button class="btn-secondary" id="add-changelog">${
+              rls
+                ? (rls.published
+                    ? `<i class="fa-solid fa-check"></i> Released in ${esc(rls.title)}`
+                    : `<i class="fa-solid fa-check"></i> In next release`)
+                : "Add to Next Release"}</button>
+            <button class="btn-secondary" id="add-kb">${(() => { const n = artsForItem(i.id).length; return n ? `<i class="fa-solid fa-check"></i> Knowledge article${n>1?"s":""} (${n}) · manage` : "Link Knowledge Article"; })()}</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="label">Related</span></div>
+          <div class="related-list">
+            ${rel.map(r => `<a data-rel="${r.id}"><i class="fa-regular fa-square-check"></i>${esc(r.title)}</a>`).join("")}
+            ${artsForItem(i.id).map(a => `<a data-kb="${a.id}"><i class="fa-regular fa-file-lines"></i>${esc(a.title)}${a.published ? (a.state === "pending" ? ` <span class="draft-flag">changed</span>` : "") : ` <span class="draft-flag">unpublished</span>`}</a>`).join("")}
+            ${rls ? `<a data-cl="1"><i class="fa-solid fa-bullhorn"></i>${esc(rls.title)}</a>` : ""}
+            ${(!rel.length && !artsForItem(i.id).length && !rls) ? `<span class="none">Nothing linked yet</span>` : ""}
+          </div>
+        </div>
+      </aside>
+    </div>`;
+
+  $("#crumb-status").onclick = () => { state.view = "board"; state.scope = null; showScreen("projects"); renderAll(); };
+  $("#crumb-tag").onclick = () => { state.scope = primary; state.view = "list"; showScreen("projects"); renderAll(); };
+  wireChecklists(i);
+  $("#edit-open").onclick = () => openEdit(i.id);
+  $("#add-kb").onclick = () => openLinkKB(i.id);
+  $("#add-changelog").onclick = () => {
+    if (rls) {
+      if (rls.published) { showScreen("roadmap"); renderRoadmap(); }
+      else { showScreen("release"); renderRelease(); }
+      return;
+    }
+    addToNextRelease(i);
+  };
+  $$("#detail [data-rel]").forEach(a => a.onclick = () => openDetail(+a.dataset.rel));
+  $$("#detail [data-kb]").forEach(a => a.onclick = () => {
+    const art = kbArt(a.dataset.kb);
+    if (art.published){ state.kbArticle = art.id; state.kbView = "article"; showScreen("kb"); renderKB(); }
+    else { state.kbView = "pending"; showScreen("kb"); renderKB(); }
+  });
+  $$("#detail [data-cl]").forEach(a => a.onclick = () => {
+    if (rls && rls.published) { showScreen("roadmap"); renderRoadmap(); }
+    else { showScreen("release"); renderRelease(); }
+  });
+}
+
+/* ============================================================
+   NEXT RELEASE — the changelog editor
+   ============================================================ */
+function addToNextRelease(i){
+  const r = nextRelease();
+  if (r.itemIds.includes(i.id)) return;
+  r.itemIds.push(i.id);
+  i.activity.unshift(`Added to ${r.title} · just now`);
+  toast(`Added to ${r.title}`, () => { showScreen("release"); renderRelease(); });
+  renderAll();
+}
+
+function renderRelease(){
+  const r = nextRelease();
+  const attached = r.itemIds.map(id => items.find(i => i.id === id)).filter(Boolean);
+  const eligible = items.filter(i => !releases.some(x => x.itemIds.includes(i.id)));
+  const priorCount = publishedReleases().length;
+
+  $("#release").innerHTML = `
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-header">
+        <span class="label">Draft release</span>
+        <button class="btn-primary" id="rel-publish" ${attached.length ? "" : "disabled"}>Publish Release</button>
+      </div>
+      <div class="rel-head">
+        <input class="rel-title" id="rel-title" value="${esc(r.title)}" placeholder="Release name">
+        <input class="rel-month" id="rel-month" value="${esc(r.month)}" placeholder="Month (e.g. Aug)">
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-header">
+        <span class="label">What's in this release</span>
+        <span class="col-count">${attached.length}</span>
+      </div>
+      <div class="rel-list">
+        ${attached.length ? attached.map(i => `
+          <div class="rel-row">
+            <div class="rel-row-main">
+              <div class="rel-row-top">
+                <h3>${esc(i.publicTitle || i.title)}</h3>
+                <span class="status-pill" data-status="${i.status}">${i.status}</span>
+              </div>
+              ${i.publicTitle && i.publicTitle !== i.title ? `<div class="rel-internal">internally: ${esc(i.title)}</div>` : ""}
+              <div class="chiprow" style="margin:8px 0 0">${i.tags.map(tagEl).join("")}</div>
+              <div class="rel-kb">
+                ${artsForItem(i.id).length
+                  ? artsForItem(i.id).map(a => `<a data-relkb="${a.id}"><i class="fa-regular fa-file-lines"></i>${esc(a.title)}${a.published ? "" : ` <span class="draft-flag">unpublished</span>`}</a>`).join("")
+                  : `<span class="none">No knowledge article linked</span>`}
+              </div>
+            </div>
+            <div class="rel-row-side">
+              <button class="text-btn" data-relopen="${i.id}">Open</button>
+              <button class="text-btn" data-relremove="${i.id}">Remove</button>
+            </div>
+          </div>`).join("")
+        : `<div class="empty">Nothing in this release yet. Add a project below, or use “Add to Next Release” from an item.</div>`}
+      </div>
+      <div class="rel-add">
+        <button class="btn-secondary" id="rel-add" ${eligible.length ? "" : "disabled"}>
+          <i class="fa-solid fa-plus"></i> Add project
+        </button>
+        <span class="hint">${eligible.length ? `${eligible.length} project${eligible.length>1?"s":""} available` : "Every project is already in a release"}</span>
+      </div>
+    </div>
+
+    ${priorCount ? `
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><span class="label">Published releases</span></div>
+      <div class="rel-list">
+        ${publishedReleases().map(pr => `
+          <div class="rel-row">
+            <div class="rel-row-main">
+              <div class="rel-row-top"><h3>${esc(pr.title)}</h3><span class="month">${esc(pr.month || "—")}</span></div>
+              <div class="rel-internal">${pr.itemIds.length} feature${pr.itemIds.length===1?"":"s"}</div>
+            </div>
+          </div>`).join("")}
+      </div>
+    </div>` : ""}`;
+
+  $("#rel-title").onchange = e => { r.title = e.target.value.trim() || "Next Release"; renderRelease(); };
+  $("#rel-month").onchange = e => { r.month = e.target.value.trim(); };
+  $$("#release [data-relopen]").forEach(b => b.onclick = () => openDetail(+b.dataset.relopen));
+  $$("#release [data-relkb]").forEach(a => a.onclick = () => { state.kbArticle = a.dataset.relkb; state.kbView = "article"; showScreen("kb"); renderKB(); });
+  $$("#release [data-relremove]").forEach(b => b.onclick = () => {
+    const id = +b.dataset.relremove;
+    r.itemIds = r.itemIds.filter(x => x !== id);
+    const it = items.find(x => x.id === id);
+    if (it) it.activity.unshift(`Removed from ${r.title} · just now`);
+    renderAll();
+  });
+  $("#rel-add").onclick = () => {
+    if (!eligible.length) return;
+    const menu = eligible.map(i => `${i.id}: ${i.title} (${i.status})`).join("\n");
+    const choice = prompt(`Add a project to ${r.title} by number:\n\n${menu}`, "");
+    if (choice === null) return;
+    const picked = items.find(i => i.id === Number(choice.trim()));
+    if (picked) addToNextRelease(picked);
+  };
+  $("#rel-publish").onclick = () => publishRelease(r);
+}
+
+function publishRelease(r){
+  const attached = r.itemIds.map(id => items.find(i => i.id === id)).filter(Boolean);
+  if (!attached.length) return;
+  const kbCount = attached.reduce((n,i) => n + artsForItem(i.id).filter(a => a.state !== "clean").length, 0);
+  if (!confirm(`Publish “${r.title}”?\n\n· ${attached.length} project${attached.length===1?"":"s"} move to Released\n· The release appears on the Roadmap${kbCount ? `\n\n${kbCount} linked knowledge article${kbCount===1?" is":"s are"} unpublished or changed. Knowledge articles publish separately, from Pending changes.` : ""}`)) return;
+
+  if (!r.month) r.month = new Date().toLocaleString("en-US", { month:"short" });
+  attached.forEach(i => {
+    i.status = "Released";
+    i.roadmap = true;
+    i.updated = "just now";
+    i.activity.unshift(`Released in ${r.title} · just now`);
+  });
+  r.published = true;
+  nextRelease(); // open a fresh draft
+  toast(`“${r.title}” published`, () => { showScreen("roadmap"); renderRoadmap(); });
+  renderAll();
+}
+
+/* ============================================================
+   KNOWLEDGEBASE
+   ============================================================ */
+function renderVaultBar(){
+  const host = $("#kb-vaultbar");
+  if (!host) return;
+  let inner;
+  if (!window.showDirectoryPicker) inner = `<span class="none">Chrome or Edge is required to read a local vault</span>`;
+  else if (!vault.dir || vault.stale) inner = `<button class="text-btn" id="vault-pick">Choose vault folder…</button><button class="text-btn" id="vault-import">Load save file…</button>`;
+  else if (vault.needsPermission) inner = `<span class="vname">${esc(vault.name)}</span><button class="text-btn" id="vault-grant">Reconnect</button>`;
+  else inner = `<span class="vname" title="${esc(vault.name)}">${esc(vault.name)} · ${vault.files.size} article${vault.files.size === 1 ? "" : "s"}</span>
+      <button class="text-btn" id="vault-reload">Reload</button>
+      <button class="text-btn" id="vault-pick">Change…</button>`;
+  const n = pendingCount() + unlinkedArts().length;
+  host.innerHTML = `<div class="vault-row">${inner}</div>
+    ${vault.error ? `<div class="none" style="font-size:11px">${esc(vault.error)}</div>` : ""}
+    <button class="pending-btn" id="kb-pending" aria-selected="${state.kbView === "pending"}">
+      Pending changes${n ? `<span class="cn">${n}</span>` : ""}</button>`;
+  const pick = $("#vault-pick");   if (pick) pick.onclick = pickVault;
+  const gr   = $("#vault-grant");  if (gr) gr.onclick = grantVault;
+  const rl   = $("#vault-reload"); if (rl) rl.onclick = readVault;
+  const im   = $("#vault-import"); if (im) im.onclick = () => $("#data-file").click();
+  $("#kb-pending").onclick = () => {
+    state.kbView = state.kbView === "pending" ? "article" : "pending";
+    renderKB();
+  };
+}
+
+function renderKBTree(){
+  const q = $("#kb-search").value.trim().toLowerCase();
+  const arts = publishedArts()
+    .filter(a => !q || (a.title + " " + a.id + " " + a.tags.join(" ")).toLowerCase().includes(q));
+  const tree = {};
+  /* An article linked to several items appears at several positions. */
+  arts.forEach(a => a.paths.forEach(pth => {
+    const segs = pth.slice(1);
+    let node = tree, holder = null;
+    segs.forEach(seg => { node[seg] = node[seg] || { __kids:{}, __arts:[] }; holder = node[seg]; node = node[seg].__kids; });
+    if (holder) holder.__arts.push(a);
+  }));
+  const host = $("#kb-tree");
+  host.innerHTML = "";
+  host.appendChild(kbBranch(tree, ""));
+  if (!arts.length){
+    const d = document.createElement("div");
+    d.className = "empty";
+    d.style.padding = "12px 8px";
+    d.textContent = vault.dir ? "No published articles yet." : "No vault connected yet.";
+    host.appendChild(d);
+  }
+}
+function kbBranch(node, prefix){
+  const ul = document.createElement("ul");
+  Object.keys(node).filter(k => !k.startsWith("__")).sort().forEach(name => {
+    const li = document.createElement("li");
+    const full = prefix + "/" + name;
+    const open = !state.collapsed.has("kb" + full);
+    if (!open) li.className = "collapsed";
+    const row = document.createElement("div");
+    row.className = "node root";
+    row.innerHTML = `<span class="twisty">${open ? "▼" : "▶"}</span><span class="nname">${name}</span>`;
+    row.onclick = () => {
+      state.collapsed.has("kb" + full) ? state.collapsed.delete("kb" + full) : state.collapsed.add("kb" + full);
+      renderKBTree();
+    };
+    li.appendChild(row);
+    const sub = document.createElement("ul");
+    node[name].__arts.forEach(a => {
+      const ali = document.createElement("li");
+      const ar = document.createElement("div");
+      ar.className = "node";
+      ar.setAttribute("aria-selected", state.kbArticle === a.id && state.kbView === "article");
+      ar.innerHTML = `<span class="twisty"></span><span class="nname" style="font-family:var(--font-family-primary)">${esc(a.title)}${a.state === "pending" ? `<span class="dot" title="unpublished changes">●</span>` : ""}</span>`;
+      ar.onclick = () => { state.kbArticle = a.id; state.kbView = "article"; renderKB(); };
+      ali.appendChild(ar); sub.appendChild(ali);
+    });
+    Array.from(kbBranch(node[name].__kids, full).children).forEach(c => sub.appendChild(c));
+    li.appendChild(sub);
+    ul.appendChild(li);
+  });
+  return ul;
+}
+
+function renderKB(){
+  renderVaultBar();
+  renderKBTree();
+  if (state.kbView === "pending") return renderPending();
+
+  const pub = publishedArts();
+  const sel = state.kbArticle ? kbArt(state.kbArticle) : null;
+  const a = (sel && sel.published && sel.links.length) ? sel : pub[0];
+  if (!a){
+    $("#kb-article").innerHTML = `<div class="card-header"><span class="label">Knowledge</span></div>
+      <div class="card-scroll" style="padding:20px 24px 32px"><div class="empty">${
+        vault.dir
+          ? "Nothing published yet. Link an article to an item in Projects, then publish it from Pending changes."
+          : "Choose the vault folder to read articles from. Files are read on load — the folder is not watched."
+      }</div></div>`;
+    $("#kb-related").innerHTML = `<div class="card-header"><span class="label">Related</span></div>
+      <div class="related-list"><span class="none">Nothing yet</span></div>`;
+    return;
+  }
+  const primary = items.find(i => i.id === a.primary);
+  const canonical = a.paths[0] || ["Knowledge"];
+  const also = a.paths.slice(1);
+  const related = items.filter(i => !a.links.includes(i.id) && i.tags.some(tg => a.tags.includes(tg))).slice(0, 6);
+  const obs = obsidianHref(a);
+
+  $("#kb-article").innerHTML = `
+    <div class="card-header">
+      <span class="breadcrumb" style="padding:0">${canonical.map(esc).join(" / ")}</span>
+      <span style="display:flex;gap:12px;align-items:center;flex-shrink:0">
+        ${obs ? `<a class="text-btn" href="${obs}">Edit in vault</a>` : ""}
+        ${primary ? `<button class="text-btn" id="kb-edit">Source item →</button>` : ""}
+      </span>
+    </div>
+    <div class="card-scroll" style="padding:20px 24px 32px">
+      <div class="doc-topline">
+        <span class="label">Knowledge</span>
+        <span class="modstamp">Published ${esc(fmtDate(a.pub.publishedAt))}${
+          a.state === "pending" ? ` · <span class="draftmark">draft edited ${esc(fmtDate(a.file.editedAt))}</span>` : ""
+        }${a.state === "missing" ? ` · <span class="draftmark">source file missing</span>` : ""}</span>
+      </div>
+      <h1>${esc(a.title)}</h1>
+      <div class="chiprow">${a.tags.map(tg => `<button class="chip" data-kbtag="${esc(tg)}">${esc(tg)}</button>`).join("")}</div>
+      ${also.length ? `<div class="alsofiled">also filed under ${also.map(x => esc(x.join(" / "))).join(" · ")}</div>` : ""}
+      ${a.state === "pending" ? `<div class="alsofiled">This article has unpublished changes in the vault. <button class="text-btn" id="kb-pubnow">Publish now</button></div>` : ""}
+      <div class="kb-body md-body" id="kb-body" style="margin-top:24px">${renderVaultMarkdown(a.pub.body)}</div>
+    </div>`;
+  resolveVaultAssets($("#kb-body"));
+  if (primary) $("#kb-edit").onclick = () => openDetail(primary.id);
+  const pn = $("#kb-pubnow"); if (pn) pn.onclick = () => publishArt(a.id);
+  $$("#kb-article [data-kbtag]").forEach(tg => tg.onclick = () => { $("#kb-search").value = tg.dataset.kbtag; renderKBTree(); });
+
+  $("#kb-related").innerHTML = `
+    <div class="card-header"><span class="label">Related</span></div>
+    <div class="related-list">
+      ${a.links.map(id => { const i = items.find(x => x.id === id); return i
+        ? `<a data-rel="${i.id}"><i class="fa-regular fa-square-check"></i>${esc(i.title)}${i.id === a.primary ? " <span class=\"lmeta\">primary</span>" : ""}</a>` : ""; }).join("")}
+      ${related.map(r => `<a data-rel="${r.id}"><i class="fa-regular fa-square-check"></i>${esc(r.title)}</a>`).join("")}
+      ${(!a.links.length && !related.length) ? `<span class="none">Nothing related</span>` : ""}
+    </div>`;
+  $$("#kb-related [data-rel]").forEach(el => el.onclick = () => openDetail(+el.dataset.rel));
+}
+
+/* Publishing is deliberate: the vault holds drafts, the Knowledgebase holds
+   snapshots, and this screen is the only place the two are reconciled. */
+function renderPending(){
+  const pend = pendingArts();
+  const orphans = unlinkedArts();
+  const groups = [
+    ["Changed since publishing", pend.filter(a => a.state === "pending"), "Publish"],
+    ["Not published yet",        pend.filter(a => a.state === "new"),     "Publish"],
+    ["Source file missing",      pend.filter(a => a.state === "missing"), "Unpublish"]
+  ];
+  $("#kb-article").innerHTML = `
+    <div class="card-header">
+      <span class="breadcrumb" style="padding:0">Knowledge / Pending changes</span>
+      <span style="display:flex;gap:12px;align-items:center;flex-shrink:0">
+        <button class="text-btn" id="pend-reload">Reload vault</button>
+        ${pend.some(a => a.state !== "missing") ? `<button class="btn-primary" id="pend-all">Publish all</button>` : ""}
+      </span>
+    </div>
+    <div class="card-scroll" style="padding:20px 24px 32px">
+      ${!vault.dir ? `<div class="empty">No vault connected.</div>` : ""}
+      ${groups.map(([label, list, action]) => !list.length ? "" : `
+        <div class="pend-group">
+          <span class="label">${label}</span>
+          ${list.map(a => `
+            <div class="pend-row">
+              <div class="pmain">
+                <div class="ptitle">${esc(a.title)}</div>
+                <div class="pmeta"><code>${esc(a.file ? a.file.filename : a.id + ".md")}</code>${
+                  a.file ? ` · edited ${esc(fmtDate(a.file.editedAt))}` : ""}${
+                  a.pub ? ` · published ${esc(fmtDate(a.pub.publishedAt))}` : ""} · ${a.links.length} linked item${a.links.length === 1 ? "" : "s"}</div>
+              </div>
+              <span class="state-pill" data-s="${a.state}">${a.state === "pending" ? "changed" : a.state}</span>
+              <button class="text-btn" data-pub="${a.id}">${action}</button>
+            </div>`).join("")}
+        </div>`).join("")}
+      ${!pend.length && vault.dir ? `<div class="empty">Everything published matches its file.</div>` : ""}
+      ${orphans.length ? `
+        <div class="pend-group">
+          <span class="label">Unlinked articles</span>
+          <div class="pmeta" style="margin-bottom:6px">Files in the vault with no item linked. They have no place in the tree and no reader can reach them.</div>
+          ${orphans.map(a => `
+            <div class="pend-row">
+              <div class="pmain">
+                <div class="ptitle">${esc(a.title)}</div>
+                <div class="pmeta"><code>${esc(a.file ? a.file.filename : a.id + ".md")}</code></div>
+              </div>
+              <span class="state-pill" data-s="new">unlinked</span>
+            </div>`).join("")}
+        </div>` : ""}
+    </div>`;
+  $("#kb-related").innerHTML = `
+    <div class="card-header"><span class="label">How this works</span></div>
+    <div class="related-list" style="padding:12px 14px">
+      <span class="none">Edit articles in Obsidian. The vault file is the draft; readers see the published snapshot until you publish here.</span>
+    </div>`;
+  $("#pend-reload").onclick = readVault;
+  const all = $("#pend-all");
+  if (all) all.onclick = () => { pend.filter(a => a.state !== "missing").forEach(a => publishArt(a.id)); };
+  $$("#kb-article [data-pub]").forEach(b => b.onclick = () => {
+    const a = kbArt(b.dataset.pub);
+    a.state === "missing" ? unpublishArt(a.id) : publishArt(a.id);
+  });
+}
+
+/* ============================================================
+   ROADMAP
+   ============================================================ */
+function renderRoadmap(){
+  /* Position is derived from where the work actually is: attached to the open
+     release means dev is building it now; opted in but not yet attached means
+     it is still ahead of them. */
+  const open = releases.find(r => !r.published);
+  const inOpen = i => !!open && open.itemIds.includes(i.id);
+  const eligible = i => i.roadmap && ROADMAP_STATUS.includes(i.status) && i.status !== "Released";
+  const working = items.filter(i => eligible(i) && inOpen(i));
+  const coming  = items.filter(i => eligible(i) && !inOpen(i));
+  const shipped = publishedReleases().slice(0,5);
+
+  $("#roadmap").innerHTML = `
+    <div class="rm-heading">
+      <h1>What we're building</h1>
+      <button class="btn-secondary intake-btn" id="rm-intake">Have a Request? Let us Know!</button>
+    </div>
+    <div class="rm-cols">
+      <div>
+        <div class="rm-colhead"><span class="label">Coming up</span>${coming.length ? `<span class="month">${coming.length}</span>` : ""}</div>
+        ${coming.length ? `<div class="rm-flatlist">
+          ${coming.map(i => `<div class="rm-flatrow">
+            <div class="rm-flatmain">
+              <h3>${esc(i.publicTitle || i.title)}</h3>
+              ${i.desc ? `<p class="rm-desc">${mdText(i.desc)}</p>` : ""}
+            </div>
+            <span class="month">${esc(i.timeframe || "next")}</span>
+          </div>`).join("")}
+        </div>` : `<div class="rm-empty">Nothing queued up yet</div>`}
+      </div>
+      <div>
+        <div class="rm-colhead"><span class="label">Currently working on</span>${working.length ? `<span class="month">${working.length}</span>` : ""}</div>
+        ${working.length ? working.map(i => `<div class="rm-card">
+          <h3>${esc(i.publicTitle || i.title)}</h3>
+          ${i.desc ? `<p class="rm-desc">${mdText(i.desc)}</p>` : ""}
+          <div class="rm-row">
+            <span class="tag">${esc((i.tags.find(t=>t.startsWith("#product/"))||"#product/—").split("/")[1])}</span>
+          </div>
+        </div>`).join("") : `<div class="rm-empty">Nothing in progress right now</div>`}
+      </div>
+      <div>
+        <div class="rm-colhead"><span class="label">Recently released</span>${shipped.length ? `<span class="month">${shipped.length}</span>` : ""}</div>
+        ${shipped.length ? shipped.map(r => `<div class="rm-card">
+          <div class="rm-row"><h3>${esc(r.title)}</h3><span class="month">${esc(r.month || "—")}</span></div>
+          <div class="rel-features">
+            ${r.itemIds.map(id => items.find(i => i.id === id)).filter(Boolean).map(i => `
+              <div class="rel-feature">
+                <div class="rel-feature-name">${esc(i.publicTitle || i.title)}</div>
+                ${artsForItem(i.id).filter(a => a.published).map(a =>
+                  `<a class="rel-feature-kb" data-rmkb="${a.id}"><i class="fa-regular fa-file-lines"></i>${esc(a.title)}</a>`).join("")}
+              </div>`).join("")}
+          </div>
+        </div>`).join("") + `<a class="rm-foot">Full changelog →</a>`
+        : `<div class="rm-empty">Nothing released yet</div>`}
+      </div>
+    </div>`;
+  $("#rm-intake").onclick = () => toast("Submit ideas in the #product team channel");
+  $$("#roadmap [data-rmkb]").forEach(a => a.onclick = () => { state.kbArticle = a.dataset.rmkb; state.kbView = "article"; showScreen("kb"); renderKB(); });
+}
+
+/* ============================================================
+   EDIT FLYOUT — projects and knowledge articles
+   ============================================================ */
+let flyMode = "project";                       // "project" | "article"
+let editId = null, editTags = [], editSel = 0, editSuggestions = [], editLinks = [];
+let linkItemId = null;
+let editRoadmap = false, editTimeframe = "next";
+const TIMEFRAMES = ["next","this quarter","Q3","Q4","later"];
+
+const TAGUI = {
+  project: { chips:"#edit-chips", input:"#edit-tag", sug:"#edit-suggests" }
+};
+const tagUi = () => TAGUI[flyMode];
+
+function setFlyMode(mode){
+  flyMode = mode;
+  $("#fly-project").hidden = mode !== "project";
+  $("#fly-article").hidden = mode !== "article";
+  $("#fly-heading").textContent = mode === "article" ? "Knowledge articles" : "Edit project";
+  $("#edit-save").textContent = mode === "article" ? "Done" : "Save changes";
+  $("#edit-delete").hidden = mode !== "project";
+}
+
+/* ---------- project mode ---------- */
+function openEdit(id){
+  const i = items.find(x => x.id === id);
+  if (!i) return;
+  setFlyMode("project");
+  editId = id;
+  editTags = collapseTags(i.tags);
+  editLinks = (i.links || []).map(l => ({ ...l }));
+  editSel = 0;
+  $("#edit-title").value = i.title;
+  $("#edit-desc").value = i.desc || "";
+  $("#edit-tag").value = "";
+  editRoadmap = !!i.roadmap;
+  editTimeframe = i.timeframe || "next";
+  $("#edit-pubtitle").value = i.publicTitle || "";
+  renderRoadmapFields(i);
+  $("#edit-overlay").classList.add("open");
+  renderEditTags();
+  renderEditLinks();
+  $("#edit-title").focus();
+  $("#edit-title").select();
+}
+
+/* Publication is opt-in per item, and only once work has actually started.
+   Where a published item lands is derived, never chosen (spec §13.2). */
+function renderRoadmapFields(i){
+  const eligible = ROADMAP_STATUS.includes(i.status);
+  const box = $("#edit-roadmap");
+  box.checked = editRoadmap && eligible;
+  box.disabled = !eligible;
+  $("#edit-rmfields").hidden = !box.checked;
+  const inNext = !!releaseOf(i) && !releaseOf(i).published;
+  $("#edit-rmhint").textContent = !eligible
+    ? ""
+    : (i.status === "Released"
+        ? "Released — appears under Recently released with its release."
+        : inNext
+          ? "In the next release — appears under Currently working on. The timeframe is not shown there."
+          : "Not in a release yet — appears under Coming up with this timeframe.");
+  $("#edit-timeframe").innerHTML = TIMEFRAMES.map(tf =>
+    `<button type="button" data-tf="${esc(tf)}" aria-pressed="${tf === editTimeframe}">${esc(tf)}</button>`).join("");
+  $$("#edit-timeframe [data-tf]").forEach(b => b.onclick = () => { editTimeframe = b.dataset.tf; renderRoadmapFields(i); });
+  const lab = $(".switchrow label");
+  if (lab) lab.textContent = eligible
+    ? "Show this on the company roadmap"
+    : "Roadmap publishing opens up once this is In Progress";
+}
+
+/* ---------- knowledge article links ----------
+   This panel never edits prose. It decides which articles document this item,
+   which link is primary, and can seed a new file in the vault (spec §14.1). */
+function openLinkKB(itemId){
+  setFlyMode("article");
+  linkItemId = itemId;
+  $("#link-search").value = "";
+  $("#edit-overlay").classList.add("open");
+  renderLinkKB();
+  $("#link-search").focus();
+}
+
+function renderLinkKB(){
+  const host = $("#link-vault");
+  if (!window.showDirectoryPicker) host.innerHTML = `<span class="none">Chrome or Edge is required to read a local vault</span>`;
+  else if (!vault.dir) host.innerHTML = `<button class="text-btn" id="link-pick">Choose vault folder…</button>`;
+  else if (vault.needsPermission) host.innerHTML = `<span class="vname">${esc(vault.name)}</span><button class="text-btn" id="link-grant">Reconnect</button>`;
+  else host.innerHTML = `<span class="vname">${esc(vault.name)} · ${vault.files.size} article${vault.files.size === 1 ? "" : "s"}</span><button class="text-btn" id="link-reload">Reload</button>`;
+  const pk = $("#link-pick");   if (pk) pk.onclick = async () => { await pickVault(); renderLinkKB(); };
+  const gr = $("#link-grant");  if (gr) gr.onclick = async () => { await grantVault(); renderLinkKB(); };
+  const rl = $("#link-reload"); if (rl) rl.onclick = async () => { await readVault(); renderLinkKB(); };
+
+  const q = $("#link-search").value.trim().toLowerCase();
+  const all = kbIdsAll().map(kbArt);
+  const linked = all.filter(a => a.links.includes(linkItemId));
+  const rest = all.filter(a => !a.links.includes(linkItemId))
+                  .filter(a => !q || (a.title + " " + a.id).toLowerCase().includes(q))
+                  .slice(0, 30);
+  const row = (a, isLinked) => `
+    <div class="linkkb-row">
+      <div class="lmain">
+        <div class="ltitle">${esc(a.title)}</div>
+        <div class="lmeta"><code>${esc(a.file ? a.file.filename : a.id + ".md")}</code>${
+          isLinked ? (a.primary === linkItemId ? " · primary" : " · also filed") : ""}${
+          a.published ? "" : " · unpublished"}</div>
+      </div>
+      ${isLinked && a.primary !== linkItemId ? `<button class="text-btn" data-primary="${a.id}">Make primary</button>` : ""}
+      <button class="text-btn" data-${isLinked ? "unlink" : "link"}="${a.id}">${isLinked ? "Unlink" : "Link"}</button>
+    </div>`;
+  $("#link-list").innerHTML =
+    (linked.length ? `<span class="label" style="margin:6px 0 2px">Linked</span>` + linked.map(a => row(a, true)).join("") : "") +
+    (rest.length ? `<span class="label" style="margin:12px 0 2px">Vault</span>` + rest.map(a => row(a, false)).join("") : "") +
+    (!linked.length && !rest.length ? `<span class="none">${vault.dir ? "No articles in the vault yet." : "Connect a vault to link an article."}</span>` : "");
+
+  $$("#link-list [data-link]").forEach(b => b.onclick = () => { linkArt(b.dataset.link, linkItemId); renderLinkKB(); renderAll(); });
+  $$("#link-list [data-unlink]").forEach(b => b.onclick = () => { unlinkArt(b.dataset.unlink, linkItemId); renderLinkKB(); renderAll(); });
+  $$("#link-list [data-primary]").forEach(b => b.onclick = () => { setPrimaryLink(b.dataset.primary, linkItemId); renderLinkKB(); renderAll(); });
+}
+
+function closeEdit(){
+  $("#edit-overlay").classList.remove("open");
+  editId = null; linkItemId = null;
+}
+
+function renderEditTags(){
+  const ui = tagUi();
+  const host = $(ui.chips), input = $(ui.input);
+  Array.from(host.querySelectorAll(".tagchip")).forEach(n => n.remove());
+  editTags.forEach((t, ix) => {
+    const el = document.createElement("span");
+    el.className = "tagchip";
+    el.innerHTML = `${esc(t)}<button type="button">×</button>`;
+    el.querySelector("button").onclick = () => { editTags.splice(ix,1); renderEditTags(); };
+    host.insertBefore(el, input);
+  });
+
+  const q = input.value.trim().replace(/^#/,"").toLowerCase();
+  const matches = Array.from(allTags())
+    .filter(t => !editTags.some(held => impliedBy(t, held)))
+    .filter(t => !q || t.toLowerCase().includes(q))
+    .sort((a,b) => countFor(b) - countFor(a))
+    .slice(0, 6);
+  editSuggestions = matches;
+  editSel = Math.max(0, Math.min(editSel, matches.length - 1));
+
+  const ul = $(ui.sug);
+  ul.innerHTML =
+    matches.map((t,ix) => `<li data-etag="${esc(t)}" class="${ix===editSel?"sel":""}">${esc(t)}<span class="cnt">${countFor(t)} items</span></li>`).join("") +
+    (q ? `<li class="create" data-ecreate="#${esc(q)}">+ create #${esc(q)}</li>` : "");
+  ul.querySelectorAll("[data-etag]").forEach(li => li.onclick = () => addEditTag(li.dataset.etag));
+  ul.querySelectorAll("[data-ecreate]").forEach(li => li.onclick = () => addEditTag(li.dataset.ecreate));
+}
+function addEditTag(t){
+  if (!editTags.includes(t)) editTags = collapseTags(editTags.concat(t));
+  $(tagUi().input).value = ""; editSel = 0;
+  renderEditTags(); $(tagUi().input).focus();
+}
+
+function renderEditLinks(){
+  const host = $("#edit-links");
+  host.innerHTML = editLinks.map((l, ix) => `
+    <div class="linkrow">
+      <input class="field-input link-label" data-lix="${ix}" data-lk="label" value="${esc(l.label||"")}" placeholder="Label">
+      <input class="field-input link-url" data-lix="${ix}" data-lk="url" value="${esc(l.url||"")}" placeholder="https://…">
+      <button class="icon-btn" type="button" data-lrm="${ix}" title="Remove link"><i class="fa-solid fa-xmark"></i></button>
+    </div>`).join("");
+  host.querySelectorAll("input").forEach(inp => inp.oninput = () => {
+    editLinks[+inp.dataset.lix][inp.dataset.lk] = inp.value;
+  });
+  host.querySelectorAll("[data-lrm]").forEach(b => b.onclick = () => {
+    editLinks.splice(+b.dataset.lrm, 1); renderEditLinks();
+  });
+}
+
+function saveFlyout(){ flyMode === "article" ? closeEdit() : saveEdit(); }
+
+/* Deleting an item never touches the vault: its articles stay on disk and
+   simply become unlinked (spec §12.5). */
+function deleteItem(id){
+  const ix = items.findIndex(x => x.id === id);
+  if (ix < 0) return;
+  const it = items[ix];
+  const arts = artsForItem(id);
+  const inRel = releases.filter(r => r.itemIds.includes(id)).map(r => r.id);
+  if (!confirm(`Delete “${it.title}”?\n\n`
+      + (arts.length ? `· ${arts.length} knowledge article${arts.length === 1 ? "" : "s"} will be unlinked — the markdown file${arts.length === 1 ? "" : "s"} stay in the vault\n` : "")
+      + (inRel.length ? `· It will be removed from ${inRel.length} release${inRel.length === 1 ? "" : "s"}\n` : "")
+      + `· This is undoable until you leave the page`)) return;
+
+  const linkBackup = JSON.parse(JSON.stringify(kbLinks));
+  items.splice(ix, 1);
+  releases.forEach(r => { r.itemIds = r.itemIds.filter(x => x !== id); });
+  Object.keys(kbLinks).forEach(k => unlinkArt(k, id));
+  closeEdit();
+  if (state.detailId === id){ state.detailId = null; showScreen("projects"); }
+  renderAll();
+  toast(`Deleted “${it.title}”`, null, () => {
+    items.splice(ix, 0, it);
+    releases.forEach(r => { if (inRel.includes(r.id) && !r.itemIds.includes(id)) r.itemIds.push(id); });
+    kbLinks = linkBackup;
+    kbSave();
+    openDetail(id);
+    renderAll();
+  });
+}
+
+function saveEdit(){
+  const i = items.find(x => x.id === editId);
+  if (!i) return closeEdit();
+  const title = $("#edit-title").value.trim();
+  if (!title) { $("#edit-title").focus(); return; }
+  i.title = title;
+  i.tags = collapseTags(editTags);
+  i.desc = $("#edit-desc").value.trim();
+  i.links = editLinks
+    .map(l => ({ label:(l.label||"").trim(), url:(l.url||"").trim() }))
+    .filter(l => l.url);
+  i.roadmap = editRoadmap;
+  i.timeframe = editTimeframe;
+  const pub = $("#edit-pubtitle").value.trim();
+  i.publicTitle = pub && pub !== i.title ? pub : "";
+  i.updated = "just now";
+  i.activity.unshift("Project edited · just now");
+  closeEdit();
+  renderAll();
+  toast("Project updated");
+}
+
+$("#edit-close").onclick = closeEdit;
+$("#edit-cancel").onclick = closeEdit;
+$("#edit-addlink").onclick = () => {
+  editLinks.push({ label:"", url:"" });
+  renderEditLinks();
+  const rows = $("#edit-links").querySelectorAll(".linkrow");
+  if (rows.length) rows[rows.length-1].querySelector("input").focus();
+};
+$("#edit-save").onclick = saveFlyout;
+$("#edit-delete").onclick = () => { if (editId != null) deleteItem(editId); };
+$("#edit-tag").oninput = () => { editSel = 0; renderEditTags(); };
+$("#edit-roadmap").onchange = e => {
+  editRoadmap = e.target.checked;
+  renderRoadmapFields(items.find(x => x.id === editId) || { status:"Idea" });
+};
+$("#edit-overlay").onclick = e => { if (e.target.id === "edit-overlay") closeEdit(); };
+
+$("#link-search").oninput = renderLinkKB;
+$("#link-new").onclick = async () => {
+  const title = prompt("Article title", items.find(x => x.id === linkItemId) ? items.find(x => x.id === linkItemId).title : "");
+  if (!title) return;
+  const id = await newVaultArticle(title.trim(), linkItemId);
+  renderLinkKB(); renderAll();
+  if (id) toast(`Created ${id} in the vault — write it in Obsidian`);
+};
+
+$(".flyout").addEventListener("keydown", e => {
+  if (e.target.id === "edit-tag") {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (!editSuggestions.length) return;
+      e.preventDefault();
+      editSel = e.key === "ArrowDown"
+        ? Math.min(editSel + 1, editSuggestions.length - 1)
+        : Math.max(editSel - 1, 0);
+      renderEditTags();
+      return;
+    }
+    if (e.key === "Tab" && editSuggestions[editSel]) { e.preventDefault(); addEditTag(editSuggestions[editSel]); return; }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const typed = e.target.value.trim();
+      if (editSuggestions[editSel]) addEditTag(editSuggestions[editSel]);
+      else if (typed) addEditTag(typed.startsWith("#") ? typed : "#" + typed);
+      return;
+    }
+  }
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveFlyout(); }
+});
+
+/* ============================================================
+   CAPTURE / ⌘K
+   ============================================================ */
+let capTags = [], capSel = 0, capSuggestions = [];
+
+function openCapture(){
+  capTags = state.scope ? [state.scope] : [];
+  capSel = 0;
+  $("#cap-title").value = ""; $("#cap-tag").value = "";
+  $("#overlay").classList.add("open");
+  renderCapture();
+  $("#cap-title").focus();
+}
+function closeCapture(){ $("#overlay").classList.remove("open"); }
+
+function renderCapture(){
+  const chips = $("#cap-chips");
+  Array.from(chips.querySelectorAll(".tagchip")).forEach(n => n.remove());
+  const input = $("#cap-tag");
+  capTags.forEach((t,ix) => {
+    const el = document.createElement("span");
+    el.className = "tagchip";
+    el.innerHTML = `${esc(t)}<button>×</button>`;
+    el.querySelector("button").onclick = () => { capTags.splice(ix,1); renderCapture(); };
+    chips.insertBefore(el, input);
+  });
+
+  const q = input.value.trim().replace(/^#/,"").toLowerCase();
+  const title = $("#cap-title").value.trim().toLowerCase();
+  const jumps = title.length > 1 ? items.filter(i => i.title.toLowerCase().includes(title)).slice(0,3) : [];
+  const tags = Array.from(allTags())
+    .filter(t => !capTags.some(held => impliedBy(t, held)))
+    .filter(t => !q || t.toLowerCase().includes(q))
+    .sort((a,b) => countFor(b) - countFor(a))
+    .slice(0, 6);
+  capSuggestions = tags;
+  capSel = Math.max(0, Math.min(capSel, tags.length - 1));
+
+  const ul = $("#cap-suggests");
+  ul.innerHTML =
+    (jumps.length ? `<li class="jump-hdr">Jump to</li>` + jumps.map(i =>
+      `<li data-jump="${i.id}" style="font-family:var(--font-family-primary)">${esc(i.title)}<span class="cnt">${i.status}</span></li>`).join("") : "") +
+    (tags.length ? `<li class="jump-hdr">Tags</li>` : "") +
+    tags.map((t,ix) => `<li data-tag="${esc(t)}" class="${ix===capSel?"sel":""}">${esc(t)}<span class="cnt">${countFor(t)} items</span></li>`).join("") +
+    (q ? `<li class="create" data-create="#${esc(q)}">+ create #${esc(q)}</li>` : "");
+
+  ul.querySelectorAll("[data-tag]").forEach(li => li.onclick = () => addCapTag(li.dataset.tag));
+  ul.querySelectorAll("[data-create]").forEach(li => li.onclick = () => addCapTag(li.dataset.create));
+  ul.querySelectorAll("[data-jump]").forEach(li => li.onclick = () => { closeCapture(); openDetail(+li.dataset.jump); });
+}
+function addCapTag(t){
+  if (!capTags.includes(t)) capTags = collapseTags(capTags.concat(t));
+  $("#cap-tag").value = ""; capSel = 0;
+  renderCapture(); $("#cap-tag").focus();
+}
+function saveCapture(){
+  const title = $("#cap-title").value.trim();
+  if (!title) { $("#cap-title").focus(); return; }
+  const id = Math.max(0, ...items.map(i => i.id)) + 1;
+  const it = { id, title, type:"idea", status:"Backlog", desc:"",
+    tags: collapseTags(capTags),
+    target:"—", updated:"just now", links:[], checklists:[], kbIds:[],
+    roadmap:false, related:[], activity:["Created · just now"] };
+  items.push(it);
+  closeCapture();
+  renderAll();
+  toast(`Saved to Backlog — “${title}”`, () => openDetail(id), () => {
+    items = items.filter(x => x.id !== id); renderAll();
+  });
+}
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg, onOpen, onUndo){
+  $("#toast-msg").textContent = msg;
+  $("#toast-open").style.display = onOpen ? "" : "none";
+  $("#toast-undo").style.display = onUndo ? "" : "none";
+  $("#toast-open").onclick = () => { hideToast(); onOpen && onOpen(); };
+  $("#toast-undo").onclick = () => { hideToast(); onUndo && onUndo(); };
+  $("#toast").classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 6000);
+}
+function hideToast(){ $("#toast").classList.remove("show"); }
+
+/* ============================================================
+   NAV + WIRING
+   ============================================================ */
+function showScreen(name){
+  state.tab = name;
+  $$(".screen").forEach(s => s.classList.remove("active"));
+  $("#screen-" + name).classList.add("active");
+  $$(".tab").forEach(t => t.setAttribute("aria-selected",
+    t.dataset.tab === name || (name === "detail" && t.dataset.tab === "projects")));
+}
+function renderAll(){
+  renderProjects(); renderRelease(); renderKB(); renderRoadmap();
+  if (state.tab === "detail") renderDetail();
+  renderSaveState();
+}
+
+$$(".tab").forEach(t => t.onclick = () => { showScreen(t.dataset.tab); renderAll(); });
+$$(".viewtoggle").forEach(v => v.onclick = () => {
+  state.view = v.dataset.view;
+  $$(".viewtoggle").forEach(x => x.setAttribute("aria-selected", x === v));
+  renderProjects();
+});
+$("#search").oninput = e => { state.q = e.target.value; renderProjects(); };
+$("#tagfilter").oninput = e => { state.tagFilter = e.target.value; renderTagSidebar(); };
+$("#clear-scope").onclick = () => {
+  state.scope = null; state.chips.clear(); state.q = ""; state.statusFilter.clear();
+  $("#search").value = ""; renderProjects();
+};
+$("#kb-search").oninput = () => renderKBTree();
+$("#capture-btn").onclick = openCapture;
+$("#save-btn").onclick = saveData;
+$("#data-file").onchange = e => { importDataFile(e.target.files[0]); e.target.value = ""; };
+$("#cap-save").onclick = saveCapture;
+$("#cap-title").oninput = renderCapture;
+$("#cap-tag").oninput = () => { capSel = 0; renderCapture(); };
+
+/* Palette navigation is bound to the modal, not to one input, so ↑↓ and Tab
+   work no matter which field has focus (capture opens focused on the title). */
+$(".modal").addEventListener("keydown", e => {
+  const inTagField = e.target.id === "cap-tag";
+
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    if (!capSuggestions.length) return;
+    e.preventDefault();
+    capSel = e.key === "ArrowDown"
+      ? Math.min(capSel + 1, capSuggestions.length - 1)
+      : Math.max(capSel - 1, 0);
+    renderCapture();
+    return;
+  }
+  if (e.key === "Tab" && capSuggestions[capSel]) {
+    e.preventDefault();
+    addCapTag(capSuggestions[capSel]);
+    return;
+  }
+  if (e.key === "Enter") {
+    e.preventDefault();
+    if (inTagField && e.target.value.trim() && capSuggestions[capSel]) addCapTag(capSuggestions[capSel]);
+    else saveCapture();
+  }
+});
+$("#overlay").onclick = e => { if (e.target.id === "overlay") closeCapture(); };
+document.addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openCapture(); }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); saveData(); }
+  if (e.key === "Escape") { if (assignOpen) { closeAssign(); return; } closeCapture(); closeEdit(); }
+});
+
+renderAll();
+restoreVault();
+</script>
+
+<!-- The shared Platinum sidebar is intentionally not mounted here while this
+     tool is being stress-tested standalone. To put it back, restore:
+     <script>window.SIDEBAR_CONFIG = { activeItem:"", user:{ name:"Healey Pembridge", role:"ui/ux designer" } };</script>
+     <script src="shared/components/sidebar-component.js"></script> -->
+
+</body>
+</html>
