@@ -327,7 +327,7 @@ button.kbd:hover { color: var(--text-primary); border-color: var(--border-defaul
 .item-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,.12); transform: translateY(-1px); }
 .item-card h3 { font-size: 15px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
 .item-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.35; }
-.card-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+.card-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: auto; padding-top: 10px; }
 
 /* ── TAGS / PILLS ── */
 .tag {
@@ -982,18 +982,10 @@ button.kbd:hover { color: var(--text-primary); border-color: var(--border-defaul
         </div>
 
         <div class="card-scroll" id="list-view">
-          <div class="filterbar">
-            <span class="label">Filter by</span>
-            <div class="chiprow" id="filter-chips"></div>
-          </div>
           <div class="item-grid" id="item-grid"></div>
         </div>
 
         <div class="card-scroll board-view-inner" id="board-view" hidden>
-          <div class="filterbar">
-            <span class="label">Filter by</span>
-            <div class="chiprow" id="filter-chips-board"></div>
-          </div>
           <div class="board" id="board"></div>
         </div>
       </div>
@@ -1859,6 +1851,21 @@ function renderTagSidebar(){
    PROJECTS — LIST + BOARD
    ============================================================ */
 function tagEl(t){ return `<span class="tag">${esc(t)}</span>`; }
+/* Card faces show tag *segments*, not full paths: the root stem is dropped and
+   the rest is split on slashes, deduped in first-seen order, so
+   #product/bridge-tools/menu-construction-sheet becomes two chips. The root is
+   #product at #all scope; inside a scope it is that scope's own root, so the
+   card face echoes the branch you are looking at rather than a fixed one. */
+function cardFaceTags(tags){
+  const root = state.scope ? state.scope.split("/")[0] : "#product";
+  const out = [];
+  tags.filter(t => t.startsWith(root + "/")).forEach(t => {
+    t.replace(/^#/, "").split("/").slice(1).forEach(seg => {
+      if (seg && !out.includes(seg)) out.push(seg);
+    });
+  });
+  return out;
+}
 function renderChips(hostId){
   const scoped = items.filter(inScope);
   const counts = {};
@@ -1875,7 +1882,6 @@ function renderChips(hostId){
   });
 }
 function renderList(){
-  renderChips("#filter-chips");
   const list = scopedItems();
   $("#item-grid").innerHTML = list.length ? list.map(i => `
     <div class="item-card" data-id="${i.id}">
@@ -1883,7 +1889,7 @@ function renderList(){
       <div class="item-desc">${esc(i.desc)}</div>
       <div class="card-meta">
         <span class="status-pill" data-status="${i.status}">${i.status}</span>
-        ${i.tags.filter(t => t.startsWith("#product/")).slice(0,1).map(tagEl).join("")}
+        ${cardFaceTags(i.tags).map(tagEl).join("")}
       </div>
     </div>`).join("") : `<div class="empty">Nothing matches this scope. Press ⌘K to capture something.</div>`;
   $$("#item-grid .item-card").forEach(c => c.onclick = () => openDetail(+c.dataset.id));
@@ -1909,7 +1915,6 @@ function cardAfter(container, y){
 }
 
 function renderBoard(){
-  renderChips("#filter-chips-board");
   const list = scopedItems();
   $("#board").innerHTML = STATUSES.map(s => {
     const col = boardOrder(list.filter(i => i.status === s));
@@ -1920,7 +1925,7 @@ function renderBoard(){
         const cc = taskCounts(i);
         return `<div class="board-card" draggable="true" data-id="${i.id}">
           <div class="bt">${esc(i.title)}</div>
-          <div class="tagline">${i.tags.filter(t=>!t.startsWith("#type/")).slice(0,2).map(tagEl).join("")}</div>
+          <div class="tagline">${cardFaceTags(i.tags).map(tagEl).join("")}</div>
           ${cc.total ? `<div class="card-foot"><span class="ratio">${cc.done}/${cc.total}</span></div>` : ""}
         </div>`; }).join("") : `<div class="col-empty">Nothing here</div>`}
       </div>
