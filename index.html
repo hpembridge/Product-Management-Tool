@@ -2708,8 +2708,94 @@
     .task .tacts { order: 1; margin-left: auto; }
     .task .tavatar-none { order: 2; flex: none; width: 22px; }
     .mw-list+.mw-list { border-top: 1px solid var(--border-tertiary); }
-    .mw-list-head { display: flex; align-items: baseline; gap: 8px; padding: 10px 14px 0; }
+    .mw-list-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; }
+    .mw-list-head .mw-add { margin-left: auto; color: var(--text-tertiary); }
+    .mw-list-head .mw-add:hover { color: var(--interactive-default); }
+    /* Context rows: indented to line up with the checkboxes above them, muted
+       because they are someone else's task and not actionable from here. */
+    .mw-ghost { cursor: default; opacity: .55; }
+    .mw-ghost:hover { border-color: transparent; background: none; }
+    .mw-ghost .ttext { margin-left: 24px; }
     .mw-empty { font-size: 13px; color: var(--text-tertiary); padding: 24px 0; text-align: center; }
+
+    /* ── MY WORK PANEL ──
+       Form width is the floor, not the target: the panel grows but never
+       narrows past the width the checklist actually reads well at. */
+    :root { --container-form: 600px; }
+
+    /* Collapsed, the panel is just its own header, shrunk to fit and left
+       exactly where you dropped it — no docking, no travel. The header is the
+       one constant, so it carries the name and the count in both states. */
+    .mwp.collapsed .mwp-toolbar,
+    .mwp.collapsed .statusbar,
+    .mwp.collapsed .mwp-body,
+    .mwp.collapsed .mwp-rz { display: none; }
+    .mwp.collapsed { width: auto !important; height: auto !important; }
+    .mwp.collapsed .mwp-head { border-bottom: 0; white-space: nowrap; }
+    .mwp.collapsed .mwp-min i { transform: rotate(-90deg); }
+
+    .mwp-title { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+    .mwp-min i { transition: transform .12s ease; }
+    .mw-badge {
+      min-width: 18px; padding: 0 5px; border-radius: var(--border-radius-full);
+      background: var(--interactive-default); color: #fff;
+      font-size: 11px; line-height: 18px; text-align: center;
+    }
+    .mw-badge[data-zero="1"] { background: var(--bg-muted); color: var(--text-tertiary); }
+
+    .mwp {
+      position: fixed; z-index: 130;
+      display: flex; flex-direction: column;
+      min-width: 0; min-height: 0;   /* the JS clamp owns both floors */
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default); border-radius: 8px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.22);
+      overflow: hidden;
+    }
+    .mwp.dragging, .mwp.resizing { user-select: none; box-shadow: 0 16px 52px rgba(0,0,0,.30); }
+
+    .mwp-head {
+      display: flex; align-items: center; gap: 8px; flex: none;
+      padding: 10px 10px 10px 12px;
+      border-bottom: 1px solid var(--border-tertiary);
+      cursor: grab;
+    }
+    .mwp.dragging .mwp-head { cursor: grabbing; }
+    .mwp-grip { color: var(--text-tertiary); font-size: 11px; }
+    .mwp-head .mw-badge { margin-right: auto; }
+    .mwp.collapsed .mwp-head .mw-badge { margin-right: 2px; }
+    .mwp-min { margin-left: 4px; }
+
+    .mwp-toolbar {
+      flex: none; display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; border-bottom: 1px solid var(--border-tertiary);
+    }
+    .mwp-toolbar .search-container { flex: 1; min-width: 0; }
+    .mw-toggle {
+      flex: none; padding: 5px 10px;
+      border: 1px solid var(--border-default); border-radius: var(--border-radius-full);
+      background: var(--bg-surface);
+      font-family: inherit; font-size: 11px; color: var(--text-secondary);
+      white-space: nowrap; cursor: pointer;
+    }
+    .mw-toggle:hover { border-color: var(--interactive-default); color: var(--text-primary); }
+    .mw-toggle[aria-pressed="true"] {
+      background: var(--interactive-bg-subtle);
+      border-color: var(--interactive-default);
+      color: var(--interactive-pressed);
+    }
+    .mwp-body { flex: 1; min-height: 0; overflow: auto; }
+
+    /* Resize handles — eight of them, sitting just inside the border. */
+    .mwp-rz { position: absolute; z-index: 2; }
+    .mwp-rz[data-rz="n"] { top: -3px; left: 10px; right: 10px; height: 7px; cursor: ns-resize; }
+    .mwp-rz[data-rz="s"] { bottom: -3px; left: 10px; right: 10px; height: 7px; cursor: ns-resize; }
+    .mwp-rz[data-rz="e"] { right: -3px; top: 10px; bottom: 10px; width: 7px; cursor: ew-resize; }
+    .mwp-rz[data-rz="w"] { left: -3px; top: 10px; bottom: 10px; width: 7px; cursor: ew-resize; }
+    .mwp-rz[data-rz="ne"] { top: -3px; right: -3px; width: 14px; height: 14px; cursor: nesw-resize; }
+    .mwp-rz[data-rz="sw"] { bottom: -3px; left: -3px; width: 14px; height: 14px; cursor: nesw-resize; }
+    .mwp-rz[data-rz="nw"] { top: -3px; left: -3px; width: 14px; height: 14px; cursor: nwse-resize; }
+    .mwp-rz[data-rz="se"] { bottom: -3px; right: -3px; width: 14px; height: 14px; cursor: nwse-resize; }
   </style>
 </head>
 
@@ -2719,7 +2805,6 @@
       <div class="topbar-row">
         <button class="whoami" id="whoami" title="Switch user"></button>
         <nav class="tabs">
-          <button class="tab" data-tab="mywork" aria-selected="false">My Work</button>
           <button class="tab" data-tab="projects" aria-selected="true">Projects</button>
           <button class="tab" data-tab="release" aria-selected="false">Next Release</button>
           <button class="tab" data-tab="kb" aria-selected="false">Knowledgebase</button>
@@ -2825,31 +2910,40 @@
       </div>
     </section>
 
-    <!-- MY WORK — the personal checklist, in the Projects shell -->
-    <section class="screen" id="screen-mywork">
-      <div class="page-content">
-        <div class="card" style="flex:1;min-width:0">
-          <div class="card-header">
-            <div class="scope-head">
-              <span class="scope-title" id="mw-title">My Work</span>
-              <span class="scope-count" id="mw-count"></span>
-              <button class="text-btn" id="mw-clear" hidden>clear</button>
-            </div>
-            <div class="search-container">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input class="search-input" id="mw-search" placeholder="Search my tasks…">
-            </div>
-          </div>
-
-          <div class="statusbar" id="mw-statusbar"></div>
-
-          <div class="card-scroll" style="padding:14px 16px 18px">
-            <div class="mywork-groups" id="mw-host"></div>
-          </div>
-        </div>
-      </div>
-    </section>
   </div>
+
+  <!-- MY WORK — a floating, resizable panel that minimizes to a docked stub.
+     Non-modal by design: no backdrop, no focus trap, the page stays live
+     behind it so the checklist can be read against whatever you're looking at. -->
+  <section class="mwp" id="mw-panel" aria-label="Tasks">
+    <header class="mwp-head" id="mw-drag">
+      <i class="fa-solid fa-grip-vertical mwp-grip"></i>
+      <span class="mwp-title">Tasks</span>
+      <span class="mw-badge" id="mw-badge">0</span>
+      <button class="text-btn" id="mw-clear" hidden>clear</button>
+      <button class="icon-btn mwp-min" id="mw-min" title="Collapse (Esc)" aria-expanded="true"><i class="fa-solid fa-chevron-down"></i></button>
+    </header>
+
+    <div class="mwp-toolbar">
+      <div class="search-container">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input class="search-input" id="mw-search" placeholder="Search my tasks…">
+      </div>
+      <button class="mw-toggle" id="mw-hidedone" aria-pressed="false"
+        title="Hide tasks you've already checked off">Hide completed</button>
+    </div>
+
+    <div class="statusbar" id="mw-statusbar"></div>
+
+    <div class="card-scroll mwp-body" style="padding:14px 16px 18px">
+      <div class="mywork-groups" id="mw-host"></div>
+    </div>
+
+    <span class="mwp-rz" data-rz="n"></span><span class="mwp-rz" data-rz="s"></span>
+    <span class="mwp-rz" data-rz="e"></span><span class="mwp-rz" data-rz="w"></span>
+    <span class="mwp-rz" data-rz="ne"></span><span class="mwp-rz" data-rz="nw"></span>
+    <span class="mwp-rz" data-rz="se"></span><span class="mwp-rz" data-rz="sw"></span>
+  </section>
 
   <!-- CAPTURE / COMMAND PALETTE -->
 
@@ -5107,13 +5201,36 @@
       if (!CURRENT_USER) return [];
       const q = state.q.trim().toLowerCase();
       return items.filter(i => !state.statusFilter.size || state.statusFilter.has(i.status)).map(i => {
+        /* Two tests, deliberately: `owns` decides what counts as yours, and
+           `shows` decides what gets drawn. Hiding completed tasks must not
+           quietly rewrite "1/2" into "0/1" — the progress you can no longer
+           see is the reason the counts are there. */
+        const owns = t => (t.who === CURRENT_USER
+          && (!q || t.t.toLowerCase().includes(q) || i.title.toLowerCase().includes(q)))
+          /* a task being typed has no text yet, so it would otherwise filter
+             itself out from under the cursor */
+          || !!(mwEdit && mwEdit.taskId === t.id);
+        const shows = t => owns(t) && (!mwHideDone || !t.d || !!(mwEdit && mwEdit.taskId === t.id));
         const lists = (i.checklists || []).map(cl => {
-          const tasks = flatTasks(cl.tasks).filter(t => t.who === CURRENT_USER
-            && (!q || t.t.toLowerCase().includes(q) || i.title.toLowerCase().includes(q)));
-          return tasks.length ? { cl, tasks } : null;
+          const nodes = mwPrune(cl.tasks, shows);
+          const tasks = flatTasks(cl.tasks).filter(owns);
+          return nodes.length ? { cl, nodes, tasks } : null;
         }).filter(Boolean);
         return lists.length ? { item: i, lists } : null;
       }).filter(Boolean).sort(mwPriority);
+    }
+
+    /* My Work used to flatten every checklist, which threw away the nesting the
+       detail screen shows. Instead the tree is pruned: a task survives if it is
+       mine, or if it has a descendant that is. The ones kept only to hold a
+       subtask up render as muted context, so an indent means the same thing in
+       both places. */
+    function mwPrune(tasks, mine) {
+      return (tasks || []).map(t => {
+        const kids = mwPrune(t.kids, mine);
+        const isMine = mine(t);
+        return (isMine || kids.length) ? { task: t, mine: isMine, kids } : null;
+      }).filter(Boolean);
     }
 
     /* Closest to shipping first: Released → Development → In Progress → Backlog
@@ -5128,6 +5245,13 @@
     }
 
     let mwEdit = null;   // { itemId, clId, taskId } — inline edit, My Work's own
+
+    /* A display preference, not a filter: it changes what the list shows
+       without touching the status filter or search that Projects shares. */
+    const MW_HIDEDONE_KEY = "pmt.mywork.hidedone";
+    let mwHideDone = (() => {
+      try { return localStorage.getItem(MW_HIDEDONE_KEY) === "1"; } catch (e) { return false; }
+    })();
 
     /* The status pills and the search box are the same controls as Projects,
        reading the same state — a filter set on one tab holds on the other. */
@@ -5145,20 +5269,61 @@
       });
     }
 
+    /* Everything assigned to you under the current search and status filter,
+       completed included — the number the empty state reasons about. */
+    function mwOwnedCount() {
+      if (!CURRENT_USER) return 0;
+      const q = state.q.trim().toLowerCase();
+      return items.filter(i => !state.statusFilter.size || state.statusFilter.has(i.status))
+        .flatMap(i => (i.checklists || []).flatMap(cl => flatTasks(cl.tasks)
+          .filter(t => t.who === CURRENT_USER
+            && (!q || t.t.toLowerCase().includes(q) || i.title.toLowerCase().includes(q))))).length;
+    }
+
+    function mwSetHideDone(on) {
+      mwHideDone = on;
+      try { localStorage.setItem(MW_HIDEDONE_KEY, on ? "1" : "0"); } catch (e) { }
+      renderMyWork();
+    }
+
     function renderMyWork() {
       const host = $("#mw-host");
       if (!host) return;
-      $("#mw-title").textContent = CURRENT_USER || "My Work";
       renderStatusBar("#mw-statusbar", () => { renderMyWork(); renderProjects(); });
+      const hd = $("#mw-hidedone");
+      if (hd) hd.setAttribute("aria-pressed", String(mwHideDone));
       if ($("#mw-search").value !== state.q) $("#mw-search").value = state.q;
 
       const groups = myTaskGroups();
       const openN = groups.flatMap(g => g.lists.flatMap(l => l.tasks)).filter(t => !t.d).length;
-      $("#mw-count").textContent = `${openN} open`;
+      const badge = $("#mw-badge");
+      if (badge) { badge.textContent = openN; badge.dataset.zero = openN ? "0" : "1"; }
       $("#mw-clear").hidden = !state.q && !state.statusFilter.size;
 
       if (!CURRENT_USER) { host.innerHTML = `<div class="mw-empty">Set your name to see your checklist.</div>`; return; }
-      if (!groups.length) { host.innerHTML = `<div class="mw-empty">Nothing assigned to you yet.</div>`; return; }
+      if (!groups.length) {
+        /* "Nothing assigned to you yet" would be a lie when the toggle is what
+           emptied the list, so say which it is and offer the way back. */
+        host.innerHTML = mwHideDone && mwOwnedCount() > 0
+          ? `<div class="mw-empty">Nothing open — completed tasks are hidden.<br>
+               <button class="text-btn" id="mw-showdone">Show completed</button></div>`
+          : `<div class="mw-empty">Nothing assigned to you yet.</div>`;
+        const sd = $("#mw-showdone");
+        if (sd) sd.onclick = () => mwSetHideDone(false);
+        return;
+      }
+
+      /* Context only: a parent that isn't yours, shown so its subtask isn't
+         left dangling. No checkbox and no actions — it isn't yours to tick. */
+      const ghostRow = task => `<div class="task mw-ghost ${task.d ? "done" : ""}">
+          <span class="ttext">${esc(task.t)}</span>
+          ${task.who ? avatarHtml(task.who) : `<span class="tavatar-none"></span>`}
+        </div>`;
+
+      const mwRows = (item, cl, nodes) => nodes.map(n => {
+        const row = n.mine ? taskRow(item, cl, n.task) : ghostRow(n.task);
+        return row + (n.kids.length ? `<div class="tkids">${mwRows(item, cl, n.kids)}</div>` : "");
+      }).join("");
 
       const taskRow = (item, cl, task) => {
         const editing = mwEdit && mwEdit.taskId === task.id && mwEdit.clId === cl.id;
@@ -5197,8 +5362,10 @@
           </div>
           ${g.lists.map(l => `<div class="mw-list">
             <div class="mw-list-head"><span class="label">${esc(l.cl.name || "Checklist")}</span>
-              <span class="cl-count">${l.tasks.filter(t => t.d).length}/${l.tasks.length}</span></div>
-            <div class="cl-tasks">${l.tasks.map(t => taskRow(g.item, l.cl, t)).join("")}</div>
+              <span class="cl-count">${l.tasks.filter(t => t.d).length}/${l.tasks.length}</span>
+              <button class="icon-btn mw-add" data-mwadd="${l.cl.id}" data-mwadditem="${g.item.id}"
+                title="Add a task to ${esc(l.cl.name || "this checklist")}"><i class="fa-solid fa-plus"></i></button></div>
+            <div class="cl-tasks">${mwRows(g.item, l.cl, l.nodes)}</div>
           </div>`).join("")}
         </div>`;
       }).join("");
@@ -5233,7 +5400,7 @@
         setDone(c.task, cb.checked); redraw(c.i);
       });
       /* Clicking the row completes the task — editing is the pencil only. */
-      host.querySelectorAll(".task:not(.editing)").forEach(row => row.onclick = e => {
+      host.querySelectorAll(".task:not(.editing):not(.mw-ghost)").forEach(row => row.onclick = e => {
         if (e.target.closest(".tacts") || e.target.matches('input[type="checkbox"]')) return;
         const c = ctx(row); if (!c) return;
         setDone(c.task, !c.task.d); redraw(c.i);
@@ -5254,6 +5421,18 @@
         c.task.kids.push(kid);
         mwEdit = { itemId: c.i.id, clId: c.cl.id, taskId: kid.id };
         redraw(c.i);
+      });
+      /* Adding from your own list assigns to you — anything else would file
+         the task and then hide it from the place you filed it. */
+      host.querySelectorAll("[data-mwadd]").forEach(b => b.onclick = e => {
+        e.stopPropagation();
+        const i = items.find(x => x.id === +b.dataset.mwadditem);
+        const cl = i && (i.checklists || []).find(c => c.id === b.dataset.mwadd);
+        if (!cl) return;
+        const task = { id: uid(), t: "", d: false, who: CURRENT_USER, kids: [] };
+        cl.tasks.push(task);
+        mwEdit = { itemId: i.id, clId: cl.id, taskId: task.id };
+        redraw(i);
       });
       host.querySelectorAll("[data-mwtdel]").forEach(b => b.onclick = e => {
         e.stopPropagation();
@@ -5308,7 +5487,8 @@
     function showScreen(name) {
       state.tab = name;
       $$(".screen").forEach(s => s.classList.remove("active"));
-      $("#screen-" + name).classList.add("active");
+      const sc = $("#screen-" + name);
+      if (sc) sc.classList.add("active");
       $$(".tab").forEach(t => t.setAttribute("aria-selected",
         t.dataset.tab === name || (name === "detail" && t.dataset.tab === "projects")));
     }
@@ -5319,6 +5499,198 @@
     }
 
     $$(".tab").forEach(t => t.onclick = () => { showScreen(t.dataset.tab); renderAll(); });
+
+    /* ============================================================
+       MY WORK PANEL — minimized / floating & resizable
+       ------------------------------------------------------------
+       My Work isn't a screen, it's a personal cut across every screen,
+       so it lives in a panel you keep open next to whatever you're
+       reading rather than a tab you navigate away to.
+       ============================================================ */
+    const MWP_KEY = "pmt.mywork.panel";
+    const MWP_HEAD_H = 41;                    /* the collapsed height */
+    const MWP_MIN_W = 600, MWP_MIN_H = 240;   /* form width is the floor */
+    const MWP_EDGE = 8;                       /* breathing room at the viewport edge */
+    const mwp = $("#mw-panel");
+
+    /* Geometry lives in one place so drag, resize, restore and the
+       viewport clamp all speak the same language. */
+    let mwpGeo = { x: 0, y: 0, w: MWP_MIN_W, h: 520, collapsed: true };
+
+    function mwpLoad() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(MWP_KEY) || "null");
+        if (raw && typeof raw.x === "number") mwpGeo = Object.assign(mwpGeo, raw);
+        else mwpDefaultPlace();
+      } catch (e) { mwpDefaultPlace(); }
+    }
+    function mwpSave() {
+      try { localStorage.setItem(MWP_KEY, JSON.stringify(mwpGeo)); } catch (e) { }
+    }
+    function mwpDefaultPlace() {
+      mwpGeo.w = Math.min(MWP_MIN_W, window.innerWidth - 40);
+      mwpGeo.h = Math.min(560, window.innerHeight - 120);
+      /* First run: parked collapsed in the bottom-right. The clamp pulls the
+         header up to the corner once it knows how wide it came out. */
+      mwpGeo.x = window.innerWidth - mwpGeo.w - 24;
+      mwpGeo.y = window.innerHeight - MWP_HEAD_H - 24;
+    }
+
+    /* The panel stays fully on screen — every edge, not a grabbable sliver.
+       A partly-offscreen panel is reachable but unusable, because the header
+       and the search box are the first things to slide off. Size is capped to
+       the viewport before position is clamped, so the position clamp always
+       has somewhere to put it. The form-width floor yields to the viewport:
+       on a window narrower than 600 the panel matches the window rather than
+       hanging off the side of it. */
+    function mwpClamp() {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      mwpGeo.w = Math.min(Math.max(mwpGeo.w, MWP_MIN_W), vw - 2 * MWP_EDGE);
+      mwpGeo.h = Math.min(Math.max(mwpGeo.h, MWP_MIN_H), vh - 2 * MWP_EDGE);
+      /* Collapsed, only the shrunk-to-fit header takes up space, so that is
+         what has to fit. The stored expanded size stays intact underneath it
+         so expanding gets you back exactly the panel you sized. */
+      const box = mwpBox();
+      mwpGeo.x = Math.min(Math.max(mwpGeo.x, MWP_EDGE), vw - box.w - MWP_EDGE);
+      mwpGeo.y = Math.min(Math.max(mwpGeo.y, MWP_EDGE), vh - box.h - MWP_EDGE);
+    }
+
+    /* What the panel actually occupies right now — the collapsed header is
+       sized by its content, so it has to be measured rather than assumed. */
+    function mwpBox() {
+      if (!mwpGeo.collapsed) return { w: mwpGeo.w, h: mwpGeo.h };
+      return { w: mwp.offsetWidth || 200, h: mwp.offsetHeight || MWP_HEAD_H };
+    }
+    function mwpApply() {
+      mwp.style.left = mwpGeo.x + "px";
+      mwp.style.top = mwpGeo.y + "px";
+      mwp.style.width = mwpGeo.w + "px";   /* CSS drops both of these */
+      mwp.style.height = mwpGeo.h + "px";  /* while the panel is collapsed */
+    }
+    function mwpRender() {
+      mwp.classList.toggle("collapsed", mwpGeo.collapsed);
+      $("#mw-min").setAttribute("aria-expanded", String(!mwpGeo.collapsed));
+      $("#mw-min").title = mwpGeo.collapsed ? "Expand" : "Collapse (Esc)";
+      mwpApply();
+    }
+
+    /* Collapsing and expanding change the panel's size, so something has to
+       stay put.
+
+       Vertically that is always the top: the header is the thing you are
+       looking at, and it should not travel down the screen just because the
+       body under it went away.
+
+       Horizontally the header spans the whole width, so the nearest edge
+       holds instead — a panel dropped against the right shrinks toward the
+       right rather than sliding away from it. */
+    function mwpResize(collapsed) {
+      const vw = window.innerWidth;
+      const before = mwpBox();
+      const anchorRight = (vw - (mwpGeo.x + before.w)) < mwpGeo.x;
+      const right = mwpGeo.x + before.w;
+
+      mwpGeo.collapsed = collapsed;
+      mwpRender();                       /* lay out first, then measure */
+      if (anchorRight) mwpGeo.x = right - mwpBox().w;
+
+      mwpClamp(); mwpApply(); mwpSave();
+    }
+    function mwpExpand() {
+      mwpResize(false);
+      renderMyWork();
+      setTimeout(() => { const f = $("#mw-search"); if (f) f.focus(); }, 20);
+    }
+    function mwpCollapse() { mwpResize(true); }
+    function mwpToggle() { mwpGeo.collapsed ? mwpExpand() : mwpCollapse(); }
+
+    $("#mw-min").onclick = mwpToggle;
+
+    /* Drag by the header — but not by the controls sitting in it. */
+    $("#mw-drag").addEventListener("pointerdown", e => {
+      if (e.target.closest("button, input")) return;
+      const sx = e.clientX, sy = e.clientY, ox = mwpGeo.x, oy = mwpGeo.y;
+      mwp.classList.add("dragging");
+      const move = ev => {
+        mwpGeo.x = ox + (ev.clientX - sx);
+        mwpGeo.y = oy + (ev.clientY - sy);
+        mwpClamp(); mwpApply();
+      };
+      /* mwpClamp already pins every edge, so dragging past an edge parks the
+         panel against it and it slides back the moment you come back inside. */
+      const up = () => {
+        mwp.classList.remove("dragging");
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        mwpSave();
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+      e.preventDefault();
+    });
+
+    /* Double-click the header to tuck it away — the muscle memory people
+       already have from every other panel like this. */
+    $("#mw-drag").addEventListener("dblclick", e => {
+      if (e.target.closest("button, input")) return;
+      mwpToggle();
+    });
+
+    /* One handler for all eight grips: the direction letters say which
+       edges move, and the opposite edges stay pinned. */
+    $$("#mw-panel .mwp-rz").forEach(h => h.addEventListener("pointerdown", e => {
+      const dir = h.dataset.rz;
+      const sx = e.clientX, sy = e.clientY;
+      const o = { x: mwpGeo.x, y: mwpGeo.y, w: mwpGeo.w, h: mwpGeo.h };
+      mwp.classList.add("resizing");
+      const move = ev => {
+        const dx = ev.clientX - sx, dy = ev.clientY - sy;
+        if (dir.indexOf("e") > -1) mwpGeo.w = Math.max(MWP_MIN_W, o.w + dx);
+        if (dir.indexOf("s") > -1) mwpGeo.h = Math.max(MWP_MIN_H, o.h + dy);
+        if (dir.indexOf("w") > -1) {
+          mwpGeo.w = Math.max(MWP_MIN_W, o.w - dx);
+          mwpGeo.x = o.x + (o.w - mwpGeo.w);
+        }
+        if (dir.indexOf("n") > -1) {
+          mwpGeo.h = Math.max(MWP_MIN_H, o.h - dy);
+          mwpGeo.y = o.y + (o.h - mwpGeo.h);
+        }
+        mwpClamp(); mwpApply();
+      };
+      const up = () => {
+        mwp.classList.remove("resizing");
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        mwpClamp(); mwpApply(); mwpSave();
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+      e.preventDefault(); e.stopPropagation();
+    }));
+
+    /* Esc tucks it away, but only when the panel is what you're working in —
+       otherwise Esc still belongs to whatever popover or editor has your
+       attention. Focus alone is too strict a test, since clicking a task row
+       leaves focus on the body, so the last click decides. */
+    let mwpActive = false;
+    document.addEventListener("pointerdown", e => { mwpActive = mwp.contains(e.target); }, true);
+    document.addEventListener("keydown", e => {
+      if (e.key !== "Escape" || mwpGeo.collapsed) return;
+      const inside = mwp.contains(document.activeElement) || mwpActive;
+      if (!inside) return;
+      /* Esc in a non-empty search clears the search first — one Esc, one job. */
+      const sf = $("#mw-search");
+      if (document.activeElement === sf && sf.value) return;
+      if (mwEdit) return;              /* an inline edit owns Esc while it's open */
+      mwpCollapse();
+    });
+
+    window.addEventListener("resize", () => { mwpClamp(); mwpApply(); mwpSave(); });
+
+    /* Render before clamping: the collapsed header is measured, so the class
+       has to be on the element before anything asks how big it is. */
+    mwpLoad(); mwpRender(); mwpClamp(); mwpApply();
+
     $$(".viewtoggle").forEach(v => v.onclick = () => {
       state.view = v.dataset.view;
       $$(".viewtoggle").forEach(x => x.setAttribute("aria-selected", x === v));
@@ -5326,6 +5698,7 @@
     });
     $("#search").oninput = e => { state.q = e.target.value; renderProjects(); renderMyWork(); };
     $("#mw-search").oninput = e => { state.q = e.target.value; renderMyWork(); renderProjects(); };
+    $("#mw-hidedone").onclick = () => mwSetHideDone(!mwHideDone);
     $("#mw-clear").onclick = () => {
       state.q = ""; state.statusFilter.clear();
       $("#mw-search").value = ""; $("#search").value = "";
