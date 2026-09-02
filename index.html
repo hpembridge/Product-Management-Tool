@@ -3502,25 +3502,141 @@
         && !Object.keys(kbPub).length && !Object.keys(kbLinks).length;
     }
 
-    async function saveData() {
-      const json = JSON.stringify({ ...snapshot(), savedAt: Date.now() }, null, 2);
-      if (!vault.dir) { downloadData(json); return; }
+    /* ============================================================
+       AUTOSAVE
+       ============================================================
+       Writes are debounced: 1.5s after you stop changing things, and never
+       later than 10s after the first unsaved edit. Autosave only ever writes
+       to the vault file — with no folder connected there is no target, so it
+       stays off and the status bar says so.
+
+       Two tabs open on the same folder is how work gets written over, so
+       every write first re-reads pmt-data.json's savedAt. If the file moved
+       under us, autosave stops and asks instead of overwriting. */
+
+    const AUTOSAVE_IDLE = 1500, AUTOSAVE_MAX = 10000;
+    let autosaveOn = true, autosaveTimer = null, autosaveFirstAt = 0;
+    let saving = false, saveConflict = false;
+
+    function autosaveAvailable() { return !!vault.dir && !vault.needsPermission && !vault.stale; }
+
+    function scheduleAutosave() {
+      if (!autosaveOn || saveConflict || saving || !autosaveAvailable()) return;
+      if (isEmptyProject() || snapshotHash() === savedHash) {
+        clearTimeout(autosaveTimer); autosaveTimer = null; autosaveFirstAt = 0; return;
+      }
+      const now = Date.now();
+      if (!autosaveFirstAt) autosaveFirstAt = now;
+      clearTimeout(autosaveTimer);
+      const wait = Math.max(0, Math.min(AUTOSAVE_IDLE, autosaveFirstAt + AUTOSAVE_MAX - now));
+      autosaveTimer = setTimeout(() => {
+        autosaveTimer = null; autosaveFirstAt = 0;
+        saveData({ auto: true });
+      }, wait);
+    }
+
+    async function flushAutosave() {
+      if (!autosaveTimer) return;
+      clearTimeout(autosaveTimer); autosaveTimer = null; autosaveFirstAt = 0;
+      await saveData({ auto: true });
+    }
+
+    /* The file's own savedAt says who wrote last — cheaper and more honest
+       than trusting this tab's memory. */
+    async function vaultSavedAt() {
       try {
+        const fh = await vault.dir.getFileHandle(DATA_FILE);
+        const d = JSON.parse(await (await fh.getFile()).text());
+        return d.savedAt || 0;
+      } catch { return 0; }
+    }
+
+    function raiseConflict(fileAt) {
+      saveConflict = true;
+      renderSaveState();
+      const when = fileAt
+        ? new Date(fileAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+        : "elsewhere";
+      const overwrite = confirm(
+        `${DATA_FILE} was saved at ${when} by another tab or window.\n\n` +
+        `OK — overwrite it with the work open in this tab.\n` +
+        `Cancel — leave the file alone and turn autosave off here.`);
+      if (overwrite) { saveConflict = false; lastSavedAt = fileAt; saveData({ force: true }); }
+      else { autosaveOn = false; renderSaveState(); }
+    }
+
+    async function saveData(opts = {}) {
+      const { auto = false, force = false } = opts;
+      if (saving) return;
+      const json = JSON.stringify({ ...snapshot(), savedAt: Date.now() }, null, 2);
+      if (!vault.dir) { if (!auto) downloadData(json); return; }
+      saving = true; renderSaveState();
+      try {
+        if (!force) {
+          const fileAt = await vaultSavedAt();
+          /* a second of slack: file mtimes and our clock are not the same clock */
+          if (fileAt && lastSavedAt && fileAt > lastSavedAt + 1000) {
+            saving = false; raiseConflict(fileAt); return;
+          }
+        }
         const fh = await vault.dir.getFileHandle(DATA_FILE, { create: true });
         const w = await fh.createWritable();
         await w.write(json);
         await w.close();
         savedHash = snapshotHash();
         lastSavedAt = Date.now();
+        saveConflict = false;
         try { localStorage.setItem("pmt-saved-at", String(lastSavedAt)); } catch { }
+        saving = false;
         renderSaveState();
-        toast(`Saved to ${DATA_FILE}`);
+        tabsBeacon("saved");
+        if (!auto) toast(`Saved to ${DATA_FILE}`);
       } catch (e) {
         vault.error = e.message;
-        toast("Could not write to the vault folder — downloading instead");
-        downloadData(json);
+        saving = false;
+        if (auto) {
+          autosaveOn = false; renderSaveState();
+          toast("Autosave could not write to the vault — reconnect the folder or press \u2318S");
+        } else {
+          toast("Could not write to the vault folder — downloading instead");
+          downloadData(json);
+        }
       }
     }
+
+    /* Tabs announce themselves so the newcomer knows it is not alone. */
+    const TAB_ID = Math.random().toString(36).slice(2);
+    let tabsCh = null, otherTabWarned = false;
+    try { tabsCh = new BroadcastChannel("pmt-tabs"); } catch { }
+    function tabsBeacon(kind) {
+      if (!tabsCh) return;
+      try { tabsCh.postMessage({ kind, id: TAB_ID, vault: vault.name, at: Date.now() }); } catch { }
+    }
+    if (tabsCh) {
+      tabsCh.onmessage = e => {
+        const m = e.data;
+        if (!m || m.id === TAB_ID) return;
+        if (m.kind === "hello") tabsBeacon("here");
+        if ((m.kind === "hello" || m.kind === "here") && !otherTabWarned) {
+          otherTabWarned = true;
+          toast("This tool is open in another tab — whichever saves last wins");
+        }
+        if (m.kind === "saved" && m.vault && m.vault === vault.name && m.at > lastSavedAt) {
+          /* someone else wrote the file; our next save will catch the conflict */
+          renderSaveState();
+        }
+      };
+    }
+
+    /* Leaving the tab is the last chance to get an edit onto disk. */
+    document.addEventListener("visibilitychange", () => { if (document.hidden) flushAutosave(); });
+    window.addEventListener("pagehide", () => { flushAutosave(); });
+    window.addEventListener("beforeunload", e => {
+      if (autosaveAvailable() && !isEmptyProject() && snapshotHash() !== savedHash) {
+        flushAutosave();
+        e.preventDefault(); e.returnValue = "";
+      }
+    });
 
     function downloadData(json) {
       const url = URL.createObjectURL(new Blob([json || JSON.stringify({ ...snapshot(), savedAt: Date.now() }, null, 2)], { type: "application/json" }));
@@ -3600,14 +3716,24 @@
       const el = $("#save-state");
       if (!el) return;
       const dirty = !isEmptyProject() && snapshotHash() !== savedHash;
-      el.dataset.dirty = dirty;
-      el.textContent = dirty
-        ? "unsaved changes"
-        : (lastSavedAt ? `saved ${new Date(lastSavedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : "");
+      const auto = autosaveAvailable() && autosaveOn && !saveConflict;
+      el.dataset.dirty = dirty || saveConflict;
+      el.textContent = saveConflict ? "file changed elsewhere — save paused"
+        : saving ? "saving…"
+          : dirty ? (auto ? "saving…" : "unsaved changes")
+            : (lastSavedAt ? `saved ${new Date(lastSavedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : "");
+      el.title = saveConflict
+        ? `Another tab saved ${DATA_FILE} after this one loaded it. Press ⌘S to overwrite it.`
+        : auto ? `Autosaving to ${vault.name}/${DATA_FILE}`
+          : vault.dir ? "Autosave is off — press ⌘S to save"
+            : "No vault folder connected — autosave is off";
       const btn = $("#save-btn");
-      if (btn) btn.title = vault.dir
-        ? `Save progress to ${vault.name}/${DATA_FILE} (⌘S)`
-        : "No vault folder connected — Save will download the file (⌘S)";
+      if (btn) btn.title = auto
+        ? `Autosaving to ${vault.name}/${DATA_FILE} — ⌘S saves right now`
+        : vault.dir
+          ? `Save progress to ${vault.name}/${DATA_FILE} (⌘S)`
+          : "No vault folder connected — Save will download the file (⌘S)";
+      scheduleAutosave();
     }
 
     /* ============================================================
@@ -5712,7 +5838,14 @@
     };
     $("#kb-search").oninput = () => renderKBTree();
     $("#capture-btn").onclick = openCapture;
-    $("#save-btn").onclick = saveData;
+    /* Manual save is also the way out of a paused state: it re-arms autosave
+       and, on a conflict, asks once before overwriting. */
+    function manualSave() {
+      autosaveOn = true;
+      if (saveConflict) { saveConflict = false; saveData({ force: true }); return; }
+      saveData();
+    }
+    $("#save-btn").onclick = manualSave;
     $("#data-file").onchange = e => { importDataFile(e.target.files[0]); e.target.value = ""; };
     $("#cap-save").onclick = saveCapture;
     $("#cap-title").oninput = renderCapture;
@@ -5746,7 +5879,7 @@
     $("#overlay").onclick = e => { if (e.target.id === "overlay") closeCapture(); };
     document.addEventListener("keydown", e => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openCapture(); }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); saveData(); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); manualSave(); }
       if (e.key === "Escape") { if (assignOpen) { closeAssign(); return; } closeCapture(); closeEdit(); }
     });
 
@@ -5765,6 +5898,7 @@
       if (!CURRENT_USER) openGate();
     })();
 
+    tabsBeacon("hello");
     restoreVault();
   </script>
 
